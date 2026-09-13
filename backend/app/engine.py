@@ -8,6 +8,26 @@ from app.threat_match import index_threats, match_threat
 from app.scoring import score_risk
 
 
+_REVENUE_RANK = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}
+
+
+def _sort_key(entry):
+    """Deterministic ranking key so tied scores never fall back to input order.
+
+    Descending on raw score, then business revenue-impact rank, then CVSS, then
+    days_open; final ascending tiebreak on vuln_id for full determinism.
+    """
+    sr, jr, _km, _th = entry
+    rev_rank = _REVENUE_RANK.get(jr.service.revenue_impact, 0) if jr.service else 0
+    return (
+        -sr.score,
+        -rev_rank,
+        -jr.vulnerability.cvss,
+        -jr.vulnerability.days_open,
+        jr.vulnerability.vuln_id,
+    )
+
+
 class NistControl(BaseModel):
     id: str
     title: str
@@ -43,7 +63,7 @@ def build_risks(
         th = match_threat(jr.vulnerability.cve, tindex)
         sr = score_risk(jr, km, th)
         scored.append((sr, jr, km, th))
-    scored.sort(key=lambda x: x[0].score, reverse=True)
+    scored.sort(key=_sort_key)
     out: list[RankedRisk] = []
     for i, (sr, jr, km, th) in enumerate(scored[:n], start=1):
         risk = RankedRisk(

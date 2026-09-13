@@ -35,6 +35,11 @@ def test_internal_cvss10_ranks_below_exposed_cvss8_ransomware():
         active_last_seen="2026-04-22", ransomware_association=True, confidence="High", summary="s")
     exposed_score = score_risk(exposed, KevMatch(in_kev=True, ransomware=True), ti).score
 
+    # Exact expected values (the clamp was removed; these cases still land here):
+    # internal = cvss_base only = (10/10)*25 = 25.0
+    # exposed  = 20(base 8) +20 +15 +15 +15 +10 +5 = 100.0
+    assert internal_score == 25.0
+    assert exposed_score == 100.0
     assert exposed_score > internal_score
 
 

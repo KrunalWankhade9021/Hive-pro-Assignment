@@ -36,5 +36,8 @@ def score_risk(joined: JoinedRisk, kev: KevMatch, threat: ThreatIntel | None) ->
         b["no_auth_required"] = 3
     if v.days_open > 30:
         b["long_open"] = 2
-    total = min(sum(b.values()), 100.0)
+    # Raw weighted sum, intentionally NOT clamped: clamping to 100 saturates the
+    # highest risks and destroys differentiation in the ranking. The score may
+    # exceed 100 for a risk that trips every factor.
+    total = sum(b.values())
     return ScoreResult(score=round(total, 2), breakdown=b)
