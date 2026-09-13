@@ -81,3 +81,26 @@ def test_real_dataset_top5_prioritizes_exposed_ransomware_critical():
         "no exposed/Critical customer-facing risk in top-5: "
         f"{[(r.vulnerability['cve'], r.business_service and r.business_service['business_service']) for r in risks]}"
     )
+
+
+def test_equal_score_ties_rank_production_above_staging():
+    """On an exact score tie, a Production asset outranks a Staging one.
+
+    The Fortinet CVE-2024-21762 risks on the two prod VPN edges and the staging
+    VPN all tie at the same raw score; the environment tiebreak must place both
+    Production edges ahead of vpn-staging.
+    """
+    # Arrange
+    kev = load_kev(KEV_PATH) if KEV_PATH.exists() else {}
+    # Act
+    risks = build_risks(_data(), kev=kev, retriever=_stub_retriever, explainer=_stub_explainer, n=10)
+    # Assert: within the group sharing the top VPN score, every Production-env
+    # entry precedes every Staging-env entry.
+    vpn = [r for r in risks if r.vulnerability["cve"] == "CVE-2024-21762"]
+    assert vpn, "expected Fortinet CVE-2024-21762 risks present"
+    tie_score = vpn[0].risk_score
+    tie_group = [r for r in risks if r.risk_score == tie_score and r.vulnerability["cve"] == "CVE-2024-21762"]
+    envs = [r.asset["environment"] for r in tie_group]
+    last_prod = max((i for i, e in enumerate(envs) if e == "Production"), default=-1)
+    first_staging = next((i for i, e in enumerate(envs) if e == "Staging"), len(envs))
+    assert last_prod < first_staging, f"Production must precede Staging on ties, got {envs}"

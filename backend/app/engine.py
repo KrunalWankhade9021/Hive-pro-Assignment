@@ -9,21 +9,25 @@ from app.scoring import score_risk
 
 
 _REVENUE_RANK = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}
+_ENV_RANK = {"Production": 3, "Staging": 2, "Development": 1}
 
 
 def _sort_key(entry):
     """Deterministic ranking key so tied scores never fall back to input order.
 
     Descending on raw score, then business revenue-impact rank, then CVSS, then
-    days_open; final ascending tiebreak on vuln_id for full determinism.
+    days_open, then environment rank (Production > Staging > Development); final
+    ascending tiebreak on vuln_id for full determinism.
     """
     sr, jr, _km, _th = entry
     rev_rank = _REVENUE_RANK.get(jr.service.revenue_impact, 0) if jr.service else 0
+    env_rank = _ENV_RANK.get(jr.asset.environment, 0)
     return (
         -sr.score,
         -rev_rank,
         -jr.vulnerability.cvss,
         -jr.vulnerability.days_open,
+        -env_rank,
         jr.vulnerability.vuln_id,
     )
 
