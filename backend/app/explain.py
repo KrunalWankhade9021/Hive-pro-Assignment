@@ -11,12 +11,16 @@ Two paths, same signature:
   failure, so the LLM can never invent a reason or break the response.
 """
 import logging
+import os
 
 from app.engine import RankedRisk
 
 log = logging.getLogger(__name__)
 
-_GROQ_MODEL = "llama-3.3-70b-versatile"
+# Groq's hosted model lineup rotates; the model id is env-configurable so it can
+# be updated without a code change. Qwen 3 returns clean single-sentence output
+# (the gpt-oss models emit only hidden reasoning tokens here).
+_GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 
 _PROMPT = (
     "You are a cyber-risk analyst briefing a technical manager. In ONE plain-English "
