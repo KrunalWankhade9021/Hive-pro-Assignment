@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cyber-risk-assistant"
 version = "0.1.0"
@@ -17,6 +21,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "httpx>=0.27"]
+
+# The installable package is the application code only. `eval`, `tests`, `data`
+# and `scripts` are project directories, not distributable packages, so we
+# declare `app` explicitly rather than relying on flat-layout auto-discovery
+# (which errors when it finds multiple top-level directories).
+[tool.setuptools]
+packages = ["app"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
