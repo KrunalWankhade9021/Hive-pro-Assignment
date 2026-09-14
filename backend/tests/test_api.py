@@ -19,6 +19,7 @@ def _patch_pipeline(monkeypatch):
     monkeypatch.setattr(main, "_build_explainer", lambda: (lambda risk: "because reasons"))
     monkeypatch.setattr(main, "_load_kev_dict", lambda: {})
     main._risks.cache_clear()
+    main._stats.cache_clear()
 
 
 def test_health_reports_ok(monkeypatch):
@@ -55,3 +56,24 @@ def test_top_risks_respects_n_parameter(monkeypatch):
     data = client.get("/risks/top?n=3").json()
 
     assert len(data) == 3
+
+
+def test_stats_returns_portfolio_counts(monkeypatch):
+    """GET /stats returns integer portfolio counts matching the bundled data pack."""
+    _patch_pipeline(monkeypatch)
+    client = TestClient(main.app)
+
+    body = client.get("/stats").json()
+
+    expected_keys = {
+        "total_assets", "internet_exposed_assets", "critical_assets",
+        "total_vulnerabilities", "exploited_count", "kev_matches",
+        "ransomware_vulns", "matched_campaigns", "noise_campaigns", "generated_at",
+    }
+    assert expected_keys <= body.keys()
+    assert all(isinstance(body[k], int) for k in expected_keys - {"generated_at"})
+    # Known counts for the bundled data pack (KEV stubbed empty, so kev_matches == 0).
+    assert body["total_assets"] == 60
+    assert body["internet_exposed_assets"] == 21
+    assert body["critical_assets"] == 15
+    assert body["total_vulnerabilities"] == 114

@@ -23,6 +23,7 @@ from app.loaders import (
     load_vulnerabilities,
 )
 from app.retriever import NistRetriever
+from app.stats import compute_stats
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -81,10 +82,23 @@ def _risks(n: int = 5):
     )
 
 
+@lru_cache(maxsize=1)
+def _stats() -> dict:
+    """Compute and cache portfolio-level summary counts (cheap; no model/LLM)."""
+    data = _load_data()
+    return compute_stats(data["assets"], data["vulns"], data["intel"], _load_kev_dict())
+
+
 @app.get("/health")
 def health():
     """Liveness probe."""
     return {"status": "ok", "groq_enabled": settings.groq_api_key is not None}
+
+
+@app.get("/stats")
+def stats():
+    """Return portfolio-level summary counts for the dashboard header."""
+    return _stats()
 
 
 @app.get("/risks/top")
