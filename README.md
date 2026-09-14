@@ -141,6 +141,38 @@ precise, fast, auditable, and reproducible as structured queries. Embedding them
 would introduce similarity where the data demands exact matching and would make
 the results harder to justify.
 
+## RAG evaluation
+
+Retrieval quality is measured, not assumed. `backend/eval/golden_set.py` holds 22
+real vulnerabilities from the data pack, each hand-labelled with the NIST 800-53
+control family (or families) a security engineer would accept as a correct
+remediation reference. Labels were assigned by what the control *should* be and
+then measured — not fitted to what the retriever returns.
+`python -m eval.evaluate_rag` reports family-level metrics (top-k = 10).
+
+We also ran a controlled experiment: dense-only retrieval versus a hybrid of
+dense cosine and BM25 lexical search fused with Reciprocal Rank Fusion.
+
+| Metric              | Dense | Hybrid (dense + BM25) |
+|---------------------|-------|-----------------------|
+| Hit-rate@1          | 0.45  | 0.45                  |
+| Hit-rate@3          | 0.55  | 0.50                  |
+| MRR                 | 0.49  | 0.52                  |
+| Mean top-1 similarity | 0.65 | 0.62                 |
+
+Hybrid did not improve retrieval — Hit-rate@1 was unchanged, Hit-rate@3 dropped,
+and mean similarity fell; only MRR rose marginally. NIST control prose is
+conceptual rather than keyword-keyed, so the lexical signal mostly pulled in
+tangentially-worded controls. The system therefore ships **dense retrieval**; the
+hybrid path is kept in the code as a reproducible experiment (`mode="hybrid"`).
+
+Caveats, stated plainly: the golden set is small (22 cases), the metric is
+family-level rather than exact-control, and a single embedding model is used. A
+Hit-rate@1 near 0.45 is partly strict family labelling — several "misses" return a
+defensible neighbouring control (for example an authentication-bypass finding
+retrieving an IA-family control not in the labelled set). The value here is the
+measured, reproducible comparison and the honest decision it drove.
+
 ## Supporting question 2 — where it can go wrong
 
 **1. A real CVE in our environment is absent from the CISA KEV snapshot.**
