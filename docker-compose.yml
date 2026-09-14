@@ -1,0 +1,52 @@
+# One-command stack: FastAPI risk engine + Next.js dashboard behind Caddy.
+#   cp .env.example .env   # optionally add GROQ_API_KEY
+#   docker compose up --build
+# then open http://localhost
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      # Optional: without a key, explanations use the deterministic template.
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        # Browser reaches the API through Caddy on the same origin.
+        NEXT_PUBLIC_API_URL: /api
+    expose:
+      - "3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # ":80" serves on the raw host/IP over HTTP. Set to a domain name
+      # (e.g. risk.example.com) for automatic HTTPS via Let's Encrypt.
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

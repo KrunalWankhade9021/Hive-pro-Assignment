@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.env
+*.egg-info/
+
+# Data artifacts (rebuilt by build_kb.py)
+backend/data/kev.parquet
+backend/data/chroma/
+
+# Model cache
+.cache/
+
+# Node
+web/node_modules/
+web/.next/
+web/out/
+
+# OS
+.DS_Store
+
+# Assignment brief (internal, not a deliverable)
+AI_Cyber_Risk_Assignment.docx
+
+# Internal planning docs (not part of deliverable)
+docs/superpowers/
+
+# SDD workspace (git-ignored scratch)
+.superpowers/
