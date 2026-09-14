@@ -1,7 +1,7 @@
 # AI-Powered Cyber Risk Assistant
 
-A system that joins TawasolPay's security data, asset inventory, open
-vulnerabilities, threat intelligence, and business-service context, into a
+A system that joins TawasolPay's security data (asset inventory, open
+vulnerabilities, threat intelligence, and business-service context) into a
 single prioritised, explainable risk picture, and retrieves the relevant
 NIST SP 800-53 remediation control for each of the top risks.
 
@@ -34,12 +34,11 @@ exploited, internet-facing, and tied to named ransomware campaigns.
 The dashboard presents this as a portfolio summary (assets, internet-exposed and
 critical counts, vulnerabilities with known exploits, CISA KEV and
 ransomware-linked totals, and active campaigns matched versus industry noise
-filtered out) followed by the ranked risk cards. Each card shows the weighted
-score as a labelled number, not a 0-100 bar, since the score is additive and can
-exceed 100, alongside a stacked bar that breaks the score into its contributing
-factors, so the reasoning is visible at a glance. Cards expand to reveal the full
-NIST control text, the per-factor score legend, the CISA KEV required action, and
-the matched campaign detail.
+filtered out) followed by the ranked risk cards. Each card shows the score
+normalised to 0-100, with an itemised breakdown of every factor that contributed
+to it (and the raw additive total alongside), so the reasoning is visible at a
+glance. Cards expand to reveal the full NIST control text, the CISA KEV required
+action, and the matched campaign detail.
 
 The MDR threat report (`synthetic_threat_report.md`) is ingested and surfaced at
 the top of the dashboard as the advisory that triggered the assessment (served by
@@ -78,8 +77,8 @@ flowchart TD
 ```
 
 The scoring is a transparent additive formula, not a black box. Each factor that
-contributes is stored and shown on the dashboard as a stacked bar, so every
-score can be read back to its causes:
+contributes is stored and shown on the dashboard as an itemised breakdown, so
+every score can be read back to its causes:
 
 ```
 weighted score = (CVSS / 10) * 25          # severity, bounded
@@ -180,7 +179,7 @@ software flaws." We embed the control prose with a sentence-transformer
 (`bge-small-en-v1.5`) into ChromaDB and retrieve by cosine similarity.
 
 **Queried as structured records: the five CSVs and the CISA KEV catalogue.**
-These are rows with exact keys, CVE IDs, `asset_id`, booleans, enumerations -
+These are rows with exact keys (CVE IDs, `asset_id`, booleans, enumerations),
 so the operations that matter are exact joins and filters: does this CVE appear
 in KEV, is this asset internet-exposed, which service does it support. Those are
 precise, fast, auditable, and reproducible as structured queries. Embedding them
@@ -277,7 +276,7 @@ ranking's real-world fidelity.
 ## Technology
 
 - **Backend:** Python 3.11, FastAPI, pandas, pydantic.
-- **Retrieval (RAG):** `sentence-transformers` (`bge-small-en-v1.5`), ChromaDB -
+- **Retrieval (RAG):** `sentence-transformers` (`bge-small-en-v1.5`), ChromaDB;
   all local, no API key, reproducible. Dense cosine retrieval ships by default; a
   BM25 hybrid path (`rank-bm25`, Reciprocal Rank Fusion) is available and was
   evaluated (see RAG evaluation above).
