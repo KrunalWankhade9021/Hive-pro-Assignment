@@ -98,6 +98,25 @@ ordering never depends on input row order.
 
 ## Running locally
 
+### Option A — Docker (one command)
+
+Prerequisites: Docker with Compose v2.
+
+```bash
+cp .env.example .env    # optional: add GROQ_API_KEY for LLM explanations
+docker compose up --build
+```
+
+Then open http://localhost. Compose builds three services behind a Caddy
+reverse proxy — the FastAPI API (`/api/*`), the Next.js dashboard (everything
+else), and Caddy itself. The first build is slow: the API image fetches CISA KEV
+and NIST 800-53 and embeds ~1,196 controls so the knowledge base is baked into
+the image and the container needs no network at runtime. `SITE_ADDRESS` in
+`.env` defaults to `:80` (serve on the raw host/IP); set it to a domain name for
+automatic HTTPS.
+
+### Option B — run the services directly
+
 Prerequisites: Python 3.11+, Node 20+.
 
 **1. Backend — build the knowledge base and start the API.**

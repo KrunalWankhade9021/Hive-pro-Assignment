@@ -1,0 +1,29 @@
+# Build context for the api image is the repo root — keep it lean and secret-free.
+.git
+.gitignore
+.DS_Store
+.claude
+.superpowers
+docs
+AI_Cyber_Risk_Assignment.docx
+README.md
+
+# Secrets and env files
+**/.env
+.env
+
+# Python caches / local artifacts (KB is rebuilt inside the image)
+**/__pycache__
+**/*.pyc
+backend/.venv
+backend/data
+backend/.hf
+**/*.egg-info
+.pytest_cache
+backend/tests
+backend/eval
+
+# Frontend (not part of the api image)
+web/node_modules
+web/.next
+web/out

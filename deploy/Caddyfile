@@ -1,0 +1,11 @@
+# Reverse proxy: /api/* -> FastAPI backend, everything else -> Next.js frontend.
+# SITE_ADDRESS defaults to :80 (serve on raw host/IP). Set it to a domain name
+# to get automatic HTTPS from Let's Encrypt.
+{$SITE_ADDRESS::80} {
+	handle_path /api/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
