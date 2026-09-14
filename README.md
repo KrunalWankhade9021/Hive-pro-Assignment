@@ -12,7 +12,7 @@ records is too slow to brief a board in 48 hours. This system does it
 automatically and shows its reasoning.
 
 - **Repository:** https://github.com/KrunalWankhade9021/Hive-pro-Assignment
-- **Live demo:** _added after deployment_
+- **Live demo:** http://34.68.228.213
 
 ---
 
