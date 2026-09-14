@@ -1,0 +1,34 @@
+name: Deploy to production
+
+# Redeploys the app to the production VM on every push to main (e.g. when a PR
+# is merged), and can also be run manually from the Actions tab.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Prevent overlapping deploys; a newer push cancels an in-flight one.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # The build re-embeds the NIST catalogue on backend changes, so allow
+          # a generous timeout.
+          command_timeout: 30m
+          script: |
+            set -e
+            cd ~/Hive-pro-Assignment
+            git fetch --all
+            git reset --hard origin/main
+            docker compose up -d --build
+            docker image prune -f
