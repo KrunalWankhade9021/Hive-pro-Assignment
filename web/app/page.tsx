@@ -89,7 +89,7 @@ export default function Home() {
       {risks && (
         <div className="space-y-4">
           {risks.map((risk) => (
-            <RiskCard key={`${risk.rank}-${risk.vulnerability.vuln_id}`} risk={risk} />
+            <RiskCard key={`${risk.rank}-${risk.vulnerability.vuln_id}`} risk={risk} topN={risks.length} />
           ))}
         </div>
       )}

@@ -27,6 +27,7 @@ export interface Asset {
   asset_type: string;
   environment: string;
   internet_exposed: boolean;
+  edr_installed: boolean;
   criticality: string;
   owner_team: string | null;
   [key: string]: unknown;
@@ -67,8 +68,10 @@ export interface Stats {
 
 export interface Risk {
   rank: number;
-  /** Weighted risk score — can exceed 100. Not a 0–100 percentage. */
+  /** Raw additive weighted score — can exceed 100. Shown only as a breakdown detail. */
   risk_score: number;
+  /** Raw score normalised onto 0–100 (raw / 115 * 100); the headline figure. */
+  normalized_score: number;
   score_breakdown: Record<string, number>;
   asset: Asset;
   vulnerability: Vulnerability;
@@ -76,5 +79,9 @@ export interface Risk {
   kev: KevInfo;
   business_service: BusinessService | null;
   nist_control: NistControl | null;
+  /** Next-best NIST controls from the same retrieval, ids distinct from the primary. */
+  alternative_controls: NistControl[];
+  /** How many of the returned top-n risks share this CVE (1 = unique). */
+  cve_concentration: number;
   explanation: string;
 }
