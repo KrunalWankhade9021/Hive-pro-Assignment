@@ -168,10 +168,15 @@ hybrid path is kept in the code as a reproducible experiment (`mode="hybrid"`).
 
 Caveats, stated plainly: the golden set is small (22 cases), the metric is
 family-level rather than exact-control, and a single embedding model is used. A
-Hit-rate@1 near 0.45 is partly strict family labelling — several "misses" return a
-defensible neighbouring control (for example an authentication-bypass finding
-retrieving an IA-family control not in the labelled set). The value here is the
-measured, reproducible comparison and the honest decision it drove.
+Hit-rate@1 near 0.45 is a mix — some "misses" return a defensible neighbouring
+control (for example the Fortinet authentication-bypass finding retrieving IA-11
+Re-authentication, an access-control-family control), while others are genuine
+misses (a hardcoded-credentials finding retrieving SC-4 rather than an IA
+control). Notably, the vulnerabilities that actually surface in the ranked top
+five — CitrixBleed, the Fortinet SSL-VPN RCE, regreSSHion, the PostgreSQL
+privilege escalation — all retrieve a correct, sensible control; the harder eval
+cases are lower-priority findings that never reach the top of the list. The value
+here is the measured, reproducible comparison and the honest decision it drove.
 
 ## Supporting question 2 — where it can go wrong
 
