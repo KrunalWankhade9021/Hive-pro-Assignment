@@ -1,27 +1,38 @@
-/** Metadata for each scoring factor: human label, category, and bar colour. */
-const FACTORS: Record<string, { label: string; category: string; color: string }> = {
-  internet_exposed: { label: "Internet-exposed", category: "Threat exposure", color: "bg-orange-500" },
-  exploit_available: { label: "Exploit available", category: "Threat exposure", color: "bg-orange-400" },
-  kev_ransomware: { label: "CISA KEV + ransomware", category: "Threat exposure", color: "bg-red-600" },
-  threat_campaign: { label: "Active campaign", category: "Threat exposure", color: "bg-red-500" },
-  business_criticality: { label: "Critical revenue service", category: "Business impact", color: "bg-sky-600" },
-  compliance_scope: { label: "Compliance scope", category: "Business impact", color: "bg-sky-400" },
-  missing_edr: { label: "No EDR", category: "Control weakness", color: "bg-amber-500" },
-  no_auth_required: { label: "No authentication required", category: "Control weakness", color: "bg-amber-400" },
-  long_open: { label: "Open >30 days", category: "Control weakness", color: "bg-amber-300" },
-  cvss_base: { label: "CVSS severity", category: "Base severity", color: "bg-slate-400" },
+/** Metadata for each scoring factor: human label + category. Colours are drawn
+ *  from a single muted navy→grey ramp so the bar stays quiet and authoritative —
+ *  severity is the only place bright colour appears elsewhere in the UI. */
+const FACTORS: Record<string, { label: string; category: string }> = {
+  internet_exposed: { label: "Internet-exposed", category: "Threat exposure" },
+  exploit_available: { label: "Active exploit", category: "Threat exposure" },
+  kev_ransomware: { label: "Ransomware (KEV)", category: "Threat exposure" },
+  threat_campaign: { label: "Active campaign", category: "Threat exposure" },
+  business_criticality: { label: "Business-critical service", category: "Business impact" },
+  compliance_scope: { label: "Compliance scope", category: "Business impact" },
+  missing_edr: { label: "No EDR", category: "Control weakness" },
+  no_auth_required: { label: "No auth required", category: "Control weakness" },
+  long_open: { label: "Open >30 days", category: "Control weakness" },
+  cvss_base: { label: "CVSS base severity", category: "Base severity" },
 };
 
-// Category display order (threat first, base severity last).
 const CATEGORY_ORDER = ["Threat exposure", "Business impact", "Control weakness", "Base severity"];
 
+// One muted ramp: deep navy for threat, mid slate for business/control, faint
+// grey for base severity. No bright colour — this is quiet by design.
+const CATEGORY_COLOR: Record<string, string> = {
+  "Threat exposure": "#1B3A5B",
+  "Business impact": "#475467",
+  "Control weakness": "#8A909C",
+  "Base severity": "#C7CBD2",
+  Other: "#C7CBD2",
+};
+
 function meta(key: string) {
-  return FACTORS[key] ?? { label: key.replace(/_/g, " "), category: "Other", color: "bg-slate-300" };
+  return FACTORS[key] ?? { label: key.replace(/_/g, " "), category: "Other" };
 }
 
 /**
- * The visual "why": a stacked bar showing each factor's contribution, and — when
- * expanded — the drivers grouped by category so the reasoning reads top-down.
+ * The visual "why": a quiet stacked bar showing each factor's contribution and,
+ * when expanded, the drivers grouped by category so the reasoning reads top-down.
  */
 export function ScoreBreakdown({
   breakdown,
@@ -39,7 +50,6 @@ export function ScoreBreakdown({
     .sort((a, b) => b[1] - a[1]);
   const total = entries.reduce((sum, [, p]) => sum + p, 0) || 1;
 
-  // Group entries by category for the expanded legend.
   const byCategory = new Map<string, [string, number][]>();
   for (const entry of entries) {
     const cat = meta(entry[0]).category;
@@ -53,12 +63,14 @@ export function ScoreBreakdown({
 
   return (
     <div>
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="flex h-1.5 w-full overflow-hidden rounded-sm bg-line">
         {entries.map(([key, points]) => (
           <div
             key={key}
-            className={meta(key).color}
-            style={{ width: `${(points / total) * 100}%` }}
+            style={{
+              width: `${(points / total) * 100}%`,
+              backgroundColor: CATEGORY_COLOR[meta(key).category] ?? CATEGORY_COLOR.Other,
+            }}
             title={`${meta(key).label}: +${points}`}
           />
         ))}
@@ -68,23 +80,26 @@ export function ScoreBreakdown({
         <div className="mt-3 space-y-3">
           {orderedCategories.map((cat) => (
             <div key={cat}>
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
                 {cat}
               </div>
               <ul className="space-y-1">
                 {byCategory.get(cat)!.map(([key, points]) => (
-                  <li key={key} className="flex items-center gap-2 text-xs text-slate-600">
-                    <span className={`h-2.5 w-2.5 flex-none rounded-sm ${meta(key).color}`} />
+                  <li key={key} className="flex items-center gap-2 text-xs text-muted">
+                    <span
+                      className="h-2 w-2 flex-none rounded-[1px]"
+                      style={{ backgroundColor: CATEGORY_COLOR[cat] ?? CATEGORY_COLOR.Other }}
+                    />
                     <span className="flex-1">{meta(key).label}</span>
-                    <span className="font-medium tabular-nums text-slate-800">+{points}</span>
+                    <span className="font-mono tabular-nums text-ink">+{points}</span>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
-          <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
-            <span className="font-semibold text-slate-700">Raw total → normalised</span>
-            <span className="font-bold tabular-nums text-slate-900">
+          <div className="flex items-center justify-between border-t border-line pt-2 text-xs">
+            <span className="font-semibold text-muted">Raw total → normalised</span>
+            <span className="font-mono tabular-nums text-ink">
               {score} → {normalized} / 100
             </span>
           </div>

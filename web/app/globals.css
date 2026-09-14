@@ -2,12 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fixed light theme: the risk report reads and prints identically for every
-   reviewer, independent of OS dark-mode preference. */
+/* Fixed light theme: a calm, dense analyst dossier that reads and prints
+   identically for every reviewer, independent of OS dark-mode preference. */
 body {
-  color: #0f172a; /* slate-900 */
-  background: #f8fafc; /* slate-50 */
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  color: #191c22; /* ink */
+  background: #f4f5f7; /* paper */
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 @layer utilities {

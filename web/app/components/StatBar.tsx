@@ -1,60 +1,37 @@
 import { Stats } from "@/lib/types";
 
-interface Tile {
+interface Stat {
   label: string;
   value: number;
   sub?: string;
-  accent: string;
+  emphasis?: boolean; // subtle severity-red for KEV / ransomware counts
 }
 
-/** A row of summary tiles giving the portfolio context behind the top risks. */
+/** A quiet strip of portfolio stats — small mono numbers, tiny labels, hairline
+ *  dividers. Context for the ranked risks, not a hero of number cards. */
 export function StatBar({ stats }: { stats: Stats }) {
-  const tiles: Tile[] = [
-    {
-      label: "Assets",
-      value: stats.total_assets,
-      sub: `${stats.internet_exposed_assets} internet-exposed`,
-      accent: "text-slate-900",
-    },
-    {
-      label: "Critical assets",
-      value: stats.critical_assets,
-      sub: "business-critical",
-      accent: "text-slate-900",
-    },
-    {
-      label: "Vulnerabilities",
-      value: stats.total_vulnerabilities,
-      sub: `${stats.exploited_count} with known exploit`,
-      accent: "text-slate-900",
-    },
-    {
-      label: "In CISA KEV",
-      value: stats.kev_matches,
-      sub: "actively exploited",
-      accent: "text-orange-600",
-    },
-    {
-      label: "Ransomware-linked",
-      value: stats.ransomware_vulns,
-      sub: "KEV or campaign",
-      accent: "text-red-600",
-    },
-    {
-      label: "Active campaigns",
-      value: stats.matched_campaigns,
-      sub: `${stats.noise_campaigns} noise filtered`,
-      accent: "text-red-600",
-    },
+  const items: Stat[] = [
+    { label: "Assets", value: stats.total_assets, sub: `${stats.internet_exposed_assets} internet-exposed` },
+    { label: "Critical assets", value: stats.critical_assets, sub: "business-critical" },
+    { label: "Vulnerabilities", value: stats.total_vulnerabilities, sub: `${stats.exploited_count} with exploit` },
+    { label: "In CISA KEV", value: stats.kev_matches, sub: "actively exploited", emphasis: true },
+    { label: "Ransomware-linked", value: stats.ransomware_vulns, sub: "KEV or campaign", emphasis: true },
+    { label: "Active campaigns", value: stats.matched_campaigns, sub: `${stats.noise_campaigns} noise filtered` },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {tiles.map((t) => (
-        <div key={t.label} className="rounded-xl border border-slate-200 bg-white p-3.5">
-          <div className={`text-2xl font-bold tabular-nums ${t.accent}`}>{t.value}</div>
-          <div className="mt-0.5 text-xs font-medium text-slate-700">{t.label}</div>
-          {t.sub && <div className="mt-0.5 text-[11px] leading-tight text-slate-400">{t.sub}</div>}
+    <div className="grid grid-cols-2 divide-line rounded-md border border-line bg-card sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
+      {items.map((s) => (
+        <div key={s.label} className="border-b border-line px-4 py-3 lg:border-b-0">
+          <div
+            className={`font-mono text-xl tabular-nums ${s.emphasis ? "text-sev-critical" : "text-ink"}`}
+          >
+            {s.value}
+          </div>
+          <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">
+            {s.label}
+          </div>
+          {s.sub && <div className="mt-0.5 text-[11px] leading-tight text-muted/70">{s.sub}</div>}
         </div>
       ))}
     </div>
