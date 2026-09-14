@@ -8,7 +8,12 @@ KEV_PATH = Path(__file__).resolve().parents[1] / "data" / "kev.parquet"
 
 
 def _stub_retriever(joined):
-    return NistControl(id="si-2", title="Flaw Remediation", text="Identify, report, correct flaws.", similarity=0.9)
+    """Return a ranked list of controls; engine uses [0] as primary, rest as alternatives."""
+    return [
+        NistControl(id="si-2", title="Flaw Remediation", text="Identify, report, correct flaws.", similarity=0.9),
+        NistControl(id="ra-5", title="Vulnerability Monitoring", text="Monitor and scan for vulnerabilities.", similarity=0.8),
+        NistControl(id="ca-7", title="Continuous Monitoring", text="Monitor controls on an ongoing basis.", similarity=0.7),
+    ]
 
 
 def _stub_explainer(risk):
@@ -50,6 +55,43 @@ def test_build_risks_respects_n():
     risks = build_risks(_data(), kev={}, retriever=_stub_retriever, explainer=_stub_explainer, n=3)
     assert len(risks) == 3
     assert [r.rank for r in risks] == [1, 2, 3]
+
+
+def test_normalized_score_is_raw_over_max_and_preserves_order():
+    """normalized_score = raw / 115 * 100, and normalising does not reorder risks."""
+    risks = build_risks(_data(), kev={}, retriever=_stub_retriever, explainer=_stub_explainer, n=5)
+    for r in risks:
+        assert r.normalized_score == round(r.risk_score / 115.0 * 100, 1)
+        assert 0.0 <= r.normalized_score <= 100.0
+    raw_order = [r.risk_score for r in risks]
+    norm_order = [r.normalized_score for r in risks]
+    assert raw_order == sorted(raw_order, reverse=True)
+    assert norm_order == sorted(norm_order, reverse=True)
+
+
+def test_alternative_controls_are_distinct_from_primary():
+    """The engine surfaces up to two alternative controls, none equal to the primary."""
+    risks = build_risks(_data(), kev={}, retriever=_stub_retriever, explainer=_stub_explainer, n=5)
+    top = risks[0]
+    assert top.nist_control.id == "si-2"
+    alt_ids = [c.id for c in top.alternative_controls]
+    assert alt_ids == ["ra-5", "ca-7"]
+    assert top.nist_control.id not in alt_ids
+
+
+def test_cve_concentration_counts_shared_cves_in_top_n():
+    """cve_concentration reports how many of the top-n share each risk's CVE."""
+    # The real data pack has CVE-2023-4966 on two load balancers and
+    # CVE-2024-21762 on three VPN assets, all in the top of the ranking.
+    kev = load_kev(KEV_PATH) if KEV_PATH.exists() else {}
+    risks = build_risks(_data(), kev=kev, retriever=_stub_retriever, explainer=_stub_explainer, n=5)
+    by_cve = {}
+    for r in risks:
+        by_cve.setdefault(r.vulnerability["cve"], []).append(r.cve_concentration)
+    # Every risk sharing a CVE reports the same count, equal to that CVE's frequency.
+    for cve, counts in by_cve.items():
+        assert len(set(counts)) == 1, f"{cve} concentration inconsistent: {counts}"
+        assert counts[0] == len(counts)
 
 
 def test_real_dataset_top5_prioritizes_exposed_ransomware_critical():

@@ -59,9 +59,13 @@ def _load_kev_dict() -> dict:
 
 
 def _build_retriever():
-    """Build the NIST retriever bound to the persisted vector store."""
+    """Build the NIST retriever bound to the persisted vector store.
+
+    Returns the ranked-retrieval callable so the engine can surface the primary
+    control plus alternatives from a single query.
+    """
     hints = _load_data()["hints"]
-    return NistRetriever(settings.data_dir / "chroma", hints=hints).retrieve
+    return NistRetriever(settings.data_dir / "chroma", hints=hints).retrieve_ranked
 
 
 def _build_explainer():

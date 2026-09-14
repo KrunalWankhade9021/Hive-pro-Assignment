@@ -14,7 +14,10 @@ def _patch_pipeline(monkeypatch):
     """Replace the network/model-heavy seams with deterministic stubs."""
     monkeypatch.setattr(
         main, "_build_retriever",
-        lambda: (lambda jr: NistControl(id="si-2", title="Flaw Remediation", text="fix flaws", similarity=0.9)),
+        lambda: (lambda jr: [
+            NistControl(id="si-2", title="Flaw Remediation", text="fix flaws", similarity=0.9),
+            NistControl(id="ra-5", title="Vulnerability Monitoring", text="scan for flaws", similarity=0.8),
+        ]),
     )
     monkeypatch.setattr(main, "_build_explainer", lambda: (lambda risk: "because reasons"))
     monkeypatch.setattr(main, "_load_kev_dict", lambda: {})
