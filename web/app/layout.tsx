@@ -24,7 +24,7 @@ const plexSerif = IBM_Plex_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "TawasolPay — Cyber Risk Briefing",
+  title: "TawasolPay Cyber Risk Briefing",
   description: "Prioritised, explainable cyber risk briefing with retrieved NIST SP 800-53 guidance.",
 };
 

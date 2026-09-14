@@ -5,8 +5,8 @@ NIST (usnistgov/oscal-content), flattens every control and control
 enhancement into ``{id, title, text}`` records, and embeds them into a
 persisted ChromaDB collection for semantic retrieval.
 
-The control text is taken verbatim from the fetched catalog — never hardcoded
-and never sourced from the LLM — so remediation guidance is genuinely grounded
+The control text is taken verbatim from the fetched catalog, never hardcoded
+and never sourced from the LLM, so remediation guidance is genuinely grounded
 in the real document.
 """
 import logging
@@ -94,8 +94,8 @@ def _walk(node: dict, out: list[dict], inherited: dict[str, str] | None = None) 
 
     Parameters defined on a control are inherited by its enhancements, since an
     enhancement's prose can reference a parameter declared on its parent control.
-    Each record carries ``text`` (readable, parameters resolved — for display) and
-    ``embed_text`` (verbatim statement — used for embedding, where resolving the
+    Each record carries ``text`` (readable, parameters resolved, for display) and
+    ``embed_text`` (verbatim statement, used for embedding, where resolving the
     parameters into shared boilerplate would blur controls together and hurt
     retrieval).
     """

@@ -15,7 +15,7 @@ _REVENUE = {"Critical": 10, "High": 6, "Medium": 3, "Low": 0}
 # weight. Statutory data-protection and payment regimes (GDPR, PCI DSS, UAE PDPL)
 # carry direct regulatory penalties and mandatory breach obligations, so they
 # score highest. Certification/attestation frameworks (ISO 27001, SOC 2, IFRS)
-# still raise the stakes — a breach risks certification and customer contracts —
+# still raise the stakes, a breach risks certification and customer contracts -
 # but at a lower tier. A service may list several scopes; the highest applicable
 # tier is used.
 _COMPLIANCE_STATUTORY = ("PCI", "GDPR", "PDPL")

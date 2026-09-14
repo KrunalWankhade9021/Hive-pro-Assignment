@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Risk } from "@/lib/types";
 import { Card } from "@/components/ui/card";
-import { Chip } from "@/components/ui/badge";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 
 const SEVERITY_COLOR: Record<string, string> = {
@@ -16,20 +15,6 @@ const SEVERITY_COLOR: Record<string, string> = {
 function severityColor(severity: string): string {
   return SEVERITY_COLOR[severity.toLowerCase()] ?? SEVERITY_COLOR.low;
 }
-
-// score_breakdown key → short chip label (base severity is implicit, so skipped).
-const FACTOR_LABELS: Record<string, string> = {
-  internet_exposed: "Internet-exposed",
-  exploit_available: "Active exploit",
-  kev_ransomware: "Ransomware (KEV)",
-  threat_campaign: "Active campaign",
-  business_criticality: "Business-critical",
-  compliance_scope: "Compliance scope",
-  missing_edr: "No EDR",
-  no_auth_required: "No auth required",
-  long_open: "Open >30d",
-};
-const FACTOR_ORDER = Object.keys(FACTOR_LABELS);
 
 function yn(value: boolean): string {
   return value ? "Yes" : "No";
@@ -52,11 +37,9 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
   const compliance =
     svc?.compliance_scope && svc.compliance_scope !== "None" ? svc.compliance_scope : null;
 
-  const firedFactors = FACTOR_ORDER.filter((k) => (risk.score_breakdown[k] ?? 0) > 0);
-
   return (
     <Card className="overflow-hidden border-l-4" style={{ borderLeftColor: sev }}>
-      {/* HEADER — rank marker, title, severity, score */}
+      {/* Header: rank marker, title, severity, score */}
       <div className="flex items-start justify-between gap-4 p-4">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 w-7 flex-none font-mono text-2xl font-semibold leading-none text-navy">
@@ -88,37 +71,18 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
         </div>
       </div>
 
-      {/* Quiet score bar */}
-      <div className="px-4">
-        <ScoreBreakdown
-          breakdown={risk.score_breakdown}
-          score={risk.risk_score}
-          normalized={risk.normalized_score}
-          full={open}
-        />
-      </div>
-
-      {/* Concentration — a quiet inline note, not a loud banner */}
+      {/* Concentration: a quiet inline note, not a loud banner */}
       {risk.cve_concentration > 1 && (
         <p
-          className="mx-4 mt-3 border-l-2 pl-2 text-xs text-muted"
+          className="mx-4 mb-3 border-l-2 pl-2 text-xs text-muted"
           style={{ borderLeftColor: sev }}
         >
           {vuln.cve} affects {risk.cve_concentration} of the top {topN} assets.
         </p>
       )}
 
-      {/* Factor chips — the multi-factor scoring made visible */}
-      {firedFactors.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-4 pt-3">
-          {firedFactors.map((k) => (
-            <Chip key={k}>{FACTOR_LABELS[k]}</Chip>
-          ))}
-        </div>
-      )}
-
       {/* Compact meta row */}
-      <div className="grid gap-x-6 gap-y-2 px-4 pt-4 text-xs sm:grid-cols-3">
+      <div className="grid gap-x-6 gap-y-2 px-4 text-xs sm:grid-cols-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Asset</div>
           <div className="mt-0.5 font-medium text-ink">{asset.asset_name}</div>
@@ -156,7 +120,7 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
         </div>
       </div>
 
-      {/* WHY — considered prose, set in serif */}
+      {/* Why it ranks: considered prose, set in serif */}
       <div className="px-4 pt-4">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
           Why it ranks here
@@ -166,13 +130,25 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
         </p>
       </div>
 
-      {/* NIST remediation — primary control always visible */}
+      {/* Scoring drivers: the itemized multi-factor breakdown */}
+      <div className="px-4 pt-4">
+        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted">
+          Scoring drivers
+        </div>
+        <ScoreBreakdown
+          breakdown={risk.score_breakdown}
+          score={risk.risk_score}
+          normalized={risk.normalized_score}
+        />
+      </div>
+
+      {/* NIST remediation: primary control always visible */}
       {nist_control && (
         <div className="mt-4 border-t border-line px-4 py-3">
           <div className="flex items-baseline justify-between gap-3">
             <div className="text-sm font-semibold text-ink">
               <span className="font-mono text-navy">{nist_control.id.toUpperCase()}</span>{" "}
-              — {nist_control.title}
+              · {nist_control.title}
             </div>
             <span className="flex-none font-mono text-[11px] text-muted">
               {Math.round(nist_control.similarity * 100)}% match
@@ -191,7 +167,7 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
                 {risk.alternative_controls.map((c) => (
                   <li key={c.id} className="flex items-center justify-between text-xs text-muted">
                     <span>
-                      <span className="font-mono text-ink">{c.id.toUpperCase()}</span> — {c.title}
+                      <span className="font-mono text-ink">{c.id.toUpperCase()}</span> · {c.title}
                     </span>
                     <span className="font-mono tabular-nums text-muted">
                       {Math.round(c.similarity * 100)}%
@@ -249,7 +225,7 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
         aria-expanded={open}
         className="w-full border-t border-line py-2 text-[11px] font-medium uppercase tracking-wider text-muted transition hover:bg-paper hover:text-ink"
       >
-        {open ? "Hide detail" : "Show drivers, control text, KEV & evidence"}
+        {open ? "Hide detail" : "Show control text, KEV & evidence"}
       </button>
     </Card>
   );

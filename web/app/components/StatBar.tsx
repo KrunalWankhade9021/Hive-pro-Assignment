@@ -7,7 +7,7 @@ interface Stat {
   emphasis?: boolean; // subtle severity-red for KEV / ransomware counts
 }
 
-/** A quiet strip of portfolio stats — small mono numbers, tiny labels, hairline
+/** A quiet strip of portfolio stats, small mono numbers, tiny labels, hairline
  *  dividers. Context for the ranked risks, not a hero of number cards. */
 export function StatBar({ stats }: { stats: Stats }) {
   const items: Stat[] = [

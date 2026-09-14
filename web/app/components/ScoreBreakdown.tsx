@@ -1,5 +1,5 @@
-/** Metadata for each scoring factor: human label + category. Colours are drawn
- *  from a single muted navy→grey ramp so the bar stays quiet and authoritative —
+/** Metadata for each scoring factor: human label + category. Category colours use
+ *  one muted navy-to-grey ramp so the breakdown stays quiet and authoritative;
  *  severity is the only place bright colour appears elsewhere in the UI. */
 const FACTORS: Record<string, { label: string; category: string }> = {
   internet_exposed: { label: "Internet-exposed", category: "Threat exposure" },
@@ -17,7 +17,7 @@ const FACTORS: Record<string, { label: string; category: string }> = {
 const CATEGORY_ORDER = ["Threat exposure", "Business impact", "Control weakness", "Base severity"];
 
 // One muted ramp: deep navy for threat, mid slate for business/control, faint
-// grey for base severity. No bright colour — this is quiet by design.
+// grey for base severity. No bright colour; this is quiet by design.
 const CATEGORY_COLOR: Record<string, string> = {
   "Threat exposure": "#1B3A5B",
   "Business impact": "#475467",
@@ -31,24 +31,22 @@ function meta(key: string) {
 }
 
 /**
- * The visual "why": a quiet stacked bar showing each factor's contribution and,
- * when expanded, the drivers grouped by category so the reasoning reads top-down.
+ * The itemized "why": the scoring drivers grouped by category, each with the
+ * points it contributed, plus the raw and normalised totals. This is the single
+ * place the multi-factor scoring is spelled out.
  */
 export function ScoreBreakdown({
   breakdown,
   score,
   normalized,
-  full = false,
 }: {
   breakdown: Record<string, number>;
   score: number;
   normalized: number;
-  full?: boolean;
 }) {
   const entries = Object.entries(breakdown)
     .filter(([, points]) => points > 0)
     .sort((a, b) => b[1] - a[1]);
-  const total = entries.reduce((sum, [, p]) => sum + p, 0) || 1;
 
   const byCategory = new Map<string, [string, number][]>();
   for (const entry of entries) {
@@ -62,49 +60,32 @@ export function ScoreBreakdown({
   ];
 
   return (
-    <div>
-      <div className="flex h-1.5 w-full overflow-hidden rounded-sm bg-line">
-        {entries.map(([key, points]) => (
-          <div
-            key={key}
-            style={{
-              width: `${(points / total) * 100}%`,
-              backgroundColor: CATEGORY_COLOR[meta(key).category] ?? CATEGORY_COLOR.Other,
-            }}
-            title={`${meta(key).label}: +${points}`}
-          />
-        ))}
-      </div>
-
-      {full && (
-        <div className="mt-3 space-y-3">
-          {orderedCategories.map((cat) => (
-            <div key={cat}>
-              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
-                {cat}
-              </div>
-              <ul className="space-y-1">
-                {byCategory.get(cat)!.map(([key, points]) => (
-                  <li key={key} className="flex items-center gap-2 text-xs text-muted">
-                    <span
-                      className="h-2 w-2 flex-none rounded-[1px]"
-                      style={{ backgroundColor: CATEGORY_COLOR[cat] ?? CATEGORY_COLOR.Other }}
-                    />
-                    <span className="flex-1">{meta(key).label}</span>
-                    <span className="font-mono tabular-nums text-ink">+{points}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-          <div className="flex items-center justify-between border-t border-line pt-2 text-xs">
-            <span className="font-semibold text-muted">Raw total → normalised</span>
-            <span className="font-mono tabular-nums text-ink">
-              {score} → {normalized} / 100
-            </span>
+    <div className="space-y-3">
+      {orderedCategories.map((cat) => (
+        <div key={cat}>
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
+            {cat}
           </div>
+          <ul className="space-y-1">
+            {byCategory.get(cat)!.map(([key, points]) => (
+              <li key={key} className="flex items-center gap-2 text-xs text-muted">
+                <span
+                  className="h-2 w-2 flex-none rounded-[1px]"
+                  style={{ backgroundColor: CATEGORY_COLOR[cat] ?? CATEGORY_COLOR.Other }}
+                />
+                <span className="flex-1">{meta(key).label}</span>
+                <span className="font-mono tabular-nums text-ink">+{points}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
+      ))}
+      <div className="flex items-center justify-between border-t border-line pt-2 text-xs">
+        <span className="font-semibold text-muted">Raw weighted total</span>
+        <span className="font-mono tabular-nums text-ink">
+          {score} (normalised {normalized} / 100)
+        </span>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Neutral base — an analyst dossier, not a SaaS dashboard.
+        // Neutral base, an analyst dossier, not a SaaS dashboard.
         paper: "#F4F5F7", // cool off-white page background
         card: "#FFFFFF", // card surface
         ink: "#191C22", // primary text (near-black)
@@ -17,7 +17,7 @@ const config: Config = {
         line: "#E3E5E9", // hairline borders
         // The single structural accent.
         navy: "#1B3A5B",
-        // Severity — the only place bright colour appears.
+        // Severity, the only place bright colour appears.
         sev: {
           critical: "#B42318",
           high: "#B54708",
@@ -31,7 +31,7 @@ const config: Config = {
         serif: ["var(--font-serif)", "Georgia", "serif"],
       },
       borderRadius: {
-        // Restrained corners — no big pill cards.
+        // Restrained corners, no big pill cards.
         DEFAULT: "3px",
         md: "4px",
         lg: "5px",

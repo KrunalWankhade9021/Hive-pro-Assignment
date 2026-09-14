@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** A thin, neutral outline chip — dense and quiet, no filled background.
+/** A thin, neutral outline chip, dense and quiet, no filled background.
  *  Used for scoring-factor chips. Severity is handled separately (left spine
  *  + outline pill), so this stays deliberately monochrome. */
 export function Chip({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {

@@ -103,7 +103,7 @@ export function AdvisoryPanel({ advisory }: { advisory: Advisory }) {
           </div>
           <p className="mt-1 text-sm text-ink">
             {ransomwareCount} active ransomware-associated campaign
-            {ransomwareCount === 1 ? "" : "s"} targeting Gulf fintech — risk level HIGH
+            {ransomwareCount === 1 ? "" : "s"} targeting Gulf fintech: risk level HIGH
           </p>
         </div>
         <span className="flex-none text-[11px] font-medium uppercase tracking-wider text-muted">

@@ -42,12 +42,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-paper">
-      {/* Slim navy header bar — the one structural accent */}
+      {/* Slim navy header bar, the one structural accent */}
       <header className="bg-navy text-white">
         <div className="mx-auto flex max-w-4xl items-baseline justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
             <h1 className="text-base font-semibold tracking-tight">
-              TawasolPay — Cyber Risk Briefing
+              TawasolPay Cyber Risk Briefing
             </h1>
             <p className="mt-0.5 text-xs text-white/70">
               Prioritised, explainable risk picture with retrieved NIST SP 800-53 guidance
@@ -111,7 +111,7 @@ export default function Home() {
         <footer className="mt-8 border-t border-line pt-4 text-[11px] leading-relaxed text-muted">
           Ranking blends internet exposure, exploit availability, CISA KEV / ransomware association,
           active threat campaigns, business criticality and compliance scope, and missing
-          compensating controls — not CVSS alone.
+          compensating controls, not CVSS alone.
         </footer>
       </main>
     </div>

@@ -39,7 +39,7 @@ def test_campaign_fields_are_extracted():
 def test_advisory_endpoint_serves_ingested_report(monkeypatch):
     """GET /advisory returns the raw markdown and parsed campaigns."""
     stub = Advisory(
-        raw_markdown="# TawasolPay — MDR Advisory\nRisk level: HIGH.",
+        raw_markdown="# TawasolPay, MDR Advisory\nRisk level: HIGH.",
         campaigns=load_advisory(_REPORT).campaigns,
     )
     monkeypatch.setattr(main, "_load_advisory", lambda: stub)
