@@ -47,13 +47,27 @@ def test_scenario_controls_present_with_prose(collection):
         assert doc and doc.strip(), "control indexed with empty prose"
 
 
+def test_no_raw_oscal_placeholders_in_store(collection):
+    """Indexed prose is free of raw ``{{ insert: param, ... }}`` placeholders."""
+    docs = collection.get(include=["documents"])["documents"]
+
+    offenders = [doc for doc in docs if "{{" in doc]
+    assert not offenders, f"{len(offenders)} controls still contain raw placeholders"
+
+
 def test_collection_uses_cosine_space(collection):
     """The collection is configured for cosine similarity."""
     assert collection.metadata.get("hnsw:space") == "cosine"
 
 
-def test_control_retrieves_itself_at_near_zero_distance(collection):
-    """Embeddings are normalized: a control's own text matches itself best."""
+def test_control_retrieves_itself_at_low_distance(collection):
+    """A control's own prose retrieves that control as the nearest neighbour.
+
+    The stored/displayed prose has parameters resolved for readability, while the
+    embedding is computed from the verbatim statement, so the self-distance is
+    small but not exactly zero — the identity (top-1 is the control itself) is the
+    property that matters.
+    """
     model = SentenceTransformer(MODEL)
     si2 = collection.get(ids=["si-2"], include=["documents", "metadatas"])
     query = f"SI-2 {si2['metadatas'][0]['title']}. {si2['documents'][0]}"
@@ -61,4 +75,4 @@ def test_control_retrieves_itself_at_near_zero_distance(collection):
 
     res = collection.query(query_embeddings=emb, n_results=1)
     assert res["ids"][0][0] == "si-2"
-    assert res["distances"][0][0] < 0.05
+    assert res["distances"][0][0] < 0.15

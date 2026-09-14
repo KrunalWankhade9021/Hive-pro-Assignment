@@ -61,3 +61,72 @@ def test_parse_captures_enhancement_prose():
 
     enhancement = next(c for c in controls if c["id"] == "si-2.1")
     assert "automated mechanisms" in enhancement["text"].lower()
+
+
+# OSCAL embeds organization-defined parameters as placeholders in the prose and
+# defines their human labels in a sibling ``params`` list.
+PARAM_FIXTURE = {
+    "catalog": {
+        "groups": [
+            {
+                "id": "si",
+                "controls": [
+                    {
+                        "id": "si-2",
+                        "title": "Flaw Remediation",
+                        "params": [
+                            {"id": "si-02_odp", "label": "time period"},
+                            {
+                                "id": "si-02_sel",
+                                "select": {"choice": ["remove", "disable"]},
+                            },
+                        ],
+                        "parts": [
+                            {
+                                "name": "statement",
+                                "prose": (
+                                    "Install updates within {{ insert: param, si-02_odp }} "
+                                    "and {{ insert: param, si-02_sel }} the component."
+                                ),
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+}
+
+
+def test_parse_resolves_assignment_and_selection_parameters():
+    """Parameter placeholders are rendered as readable assignment/selection text."""
+    controls = parse_oscal(PARAM_FIXTURE)
+
+    si2 = next(c for c in controls if c["id"] == "si-2")
+    assert "[assignment: time period]" in si2["text"]
+    assert "[selection: remove; disable]" in si2["text"]
+
+
+def test_parse_leaves_no_raw_placeholder():
+    """No raw ``{{ ... }}`` placeholder survives parsing, even for unknown ids."""
+    fixture = {
+        "catalog": {
+            "controls": [
+                {
+                    "id": "xx-1",
+                    "title": "Unknown Param",
+                    "parts": [
+                        {
+                            "name": "statement",
+                            "prose": "Act within {{ insert: param, undefined_odp }}.",
+                        }
+                    ],
+                }
+            ]
+        }
+    }
+
+    controls = parse_oscal(fixture)
+
+    assert "{{" not in controls[0]["text"]
+    assert "[assignment: organization-defined value]" in controls[0]["text"]
