@@ -48,3 +48,22 @@ def test_breakdown_records_factors():
     res = score_risk(r, KevMatch(in_kev=True, ransomware=True), None)
     assert res.breakdown["internet_exposed"] == 20
     assert res.breakdown["kev_ransomware"] == 15
+
+
+def test_statutory_compliance_scores_higher_than_attestation():
+    """Statutory regimes (GDPR/PCI/PDPL) weigh 5; certifications (ISO/SOC/IFRS) weigh 3."""
+    statutory = mk({}, {}, {"compliance_scope": "GDPR"})
+    attestation = mk({}, {}, {"compliance_scope": "ISO 27001"})
+    none = mk({}, {}, {"compliance_scope": "None"})
+
+    kev = KevMatch(in_kev=False, ransomware=False)
+    assert score_risk(statutory, kev, None).breakdown["compliance_scope"] == 5
+    assert score_risk(attestation, kev, None).breakdown["compliance_scope"] == 3
+    assert "compliance_scope" not in score_risk(none, kev, None).breakdown
+
+
+def test_mixed_compliance_scope_takes_highest_tier():
+    """A service listing both a certification and a statutory regime scores the top tier."""
+    mixed = mk({}, {}, {"compliance_scope": "SOC 2, UAE PDPL"})
+    res = score_risk(mixed, KevMatch(in_kev=False, ransomware=False), None)
+    assert res.breakdown["compliance_scope"] == 5

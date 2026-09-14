@@ -11,6 +11,24 @@ class ScoreResult(BaseModel):
 
 _REVENUE = {"Critical": 10, "High": 6, "Medium": 3, "Low": 0}
 
+# Compliance scope amplifies breach impact, but not all frameworks carry the same
+# weight. Statutory data-protection and payment regimes (GDPR, PCI DSS, UAE PDPL)
+# carry direct regulatory penalties and mandatory breach obligations, so they
+# score highest. Certification/attestation frameworks (ISO 27001, SOC 2, IFRS)
+# still raise the stakes — a breach risks certification and customer contracts —
+# but at a lower tier. A service may list several scopes; the highest applicable
+# tier is used.
+_COMPLIANCE_STATUTORY = ("PCI", "GDPR", "PDPL")
+_COMPLIANCE_ATTESTATION = ("ISO", "SOC", "IFRS")
+
+
+def _compliance_points(scope: str) -> int:
+    if any(k in scope for k in _COMPLIANCE_STATUTORY):
+        return 5
+    if any(k in scope for k in _COMPLIANCE_ATTESTATION):
+        return 3
+    return 0
+
 
 def score_risk(joined: JoinedRisk, kev: KevMatch, threat: ThreatIntel | None) -> ScoreResult:
     v, a, s = joined.vulnerability, joined.asset, joined.service
@@ -28,8 +46,9 @@ def score_risk(joined: JoinedRisk, kev: KevMatch, threat: ThreatIntel | None) ->
         rev = _REVENUE.get(s.revenue_impact, 0)
         if rev:
             b["business_criticality"] = rev
-        if any(k in s.compliance_scope for k in ("PCI", "GDPR")):
-            b["compliance_scope"] = 5
+        comp = _compliance_points(s.compliance_scope)
+        if comp:
+            b["compliance_scope"] = comp
     if not a.edr_installed:
         b["missing_edr"] = 5
     if not v.auth_required:

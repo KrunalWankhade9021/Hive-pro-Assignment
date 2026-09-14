@@ -88,7 +88,7 @@ weighted score = (CVSS / 10) * 25          # severity, bounded
                + 15  ransomware-associated in CISA KEV
                + 15  matched to an active threat campaign
                + 10/6/3  business revenue impact (Critical/High/Medium)
-               + 5   PCI DSS or GDPR compliance scope
+               + 5/3  compliance scope (5: GDPR/PCI DSS/UAE PDPL; 3: ISO 27001/SOC 2/IFRS)
                + 5   no EDR   + 3  no auth required   + 2  open > 30 days
 ```
 
