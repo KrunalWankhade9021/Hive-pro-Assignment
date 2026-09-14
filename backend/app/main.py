@@ -11,6 +11,7 @@ from functools import lru_cache
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.advisory import load_advisory
 from app.config import settings
 from app.engine import build_risks
 from app.explain import Explainer
@@ -58,6 +59,11 @@ def _load_kev_dict() -> dict:
     return load_kev(settings.data_dir / "kev.parquet")
 
 
+def _load_advisory():
+    """Load the MDR threat advisory from the dataset directory."""
+    return load_advisory(settings.dataset_dir / "synthetic_threat_report.md")
+
+
 def _build_retriever():
     """Build the NIST retriever bound to the persisted vector store.
 
@@ -93,6 +99,12 @@ def _stats() -> dict:
     return compute_stats(data["assets"], data["vulns"], data["intel"], _load_kev_dict())
 
 
+@lru_cache(maxsize=1)
+def _advisory() -> dict:
+    """Load and cache the MDR advisory (raw markdown plus parsed campaigns)."""
+    return _load_advisory().model_dump()
+
+
 @app.get("/health")
 def health():
     """Liveness probe."""
@@ -103,6 +115,12 @@ def health():
 def stats():
     """Return portfolio-level summary counts for the dashboard header."""
     return _stats()
+
+
+@app.get("/advisory")
+def advisory():
+    """Return the ingested MDR threat advisory (raw markdown and parsed campaigns)."""
+    return _advisory()
 
 
 @app.get("/risks/top")
