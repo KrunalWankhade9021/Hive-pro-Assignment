@@ -52,6 +52,19 @@ export interface BusinessService {
   [key: string]: unknown;
 }
 
+export interface Stats {
+  total_assets: number;
+  internet_exposed_assets: number;
+  critical_assets: number;
+  total_vulnerabilities: number;
+  exploited_count: number;
+  kev_matches: number;
+  ransomware_vulns: number;
+  matched_campaigns: number;
+  noise_campaigns: number;
+  generated_at: string;
+}
+
 export interface Risk {
   rank: number;
   /** Weighted risk score — can exceed 100. Not a 0–100 percentage. */

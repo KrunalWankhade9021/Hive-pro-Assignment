@@ -1,6 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import { Risk } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScoreBreakdown } from "./ScoreBreakdown";
 
 function severityIntent(severity: string): "danger" | "warning" | "info" | "neutral" {
   switch (severity.toLowerCase()) {
@@ -17,6 +21,7 @@ function severityIntent(severity: string): "danger" | "warning" | "info" | "neut
 
 export function RiskCard({ risk }: { risk: Risk }) {
   const { asset, vulnerability: vuln, business_service: svc, kev, matched_threat, nist_control } = risk;
+  const [open, setOpen] = useState(false);
 
   const compliance =
     svc?.compliance_scope && svc.compliance_scope !== "None" ? svc.compliance_scope : null;
@@ -43,6 +48,11 @@ export function RiskCard({ risk }: { risk: Risk }) {
           <div className="text-2xl font-bold tabular-nums text-slate-900">{risk.risk_score}</div>
           <div className="text-[11px] uppercase tracking-wide text-slate-400">weighted risk score</div>
         </div>
+      </div>
+
+      {/* Score breakdown bar — the visual "why", always visible; legend when expanded */}
+      <div className="px-5 pt-4">
+        <ScoreBreakdown breakdown={risk.score_breakdown} score={risk.risk_score} full={open} />
       </div>
 
       {/* Asset & service */}
@@ -95,9 +105,48 @@ export function RiskCard({ risk }: { risk: Risk }) {
               match {Math.round(nist_control.similarity * 100)}%
             </span>
           </div>
-          <p className="mt-1 line-clamp-4 text-sm leading-relaxed text-slate-600">{nist_control.text}</p>
+          <p className={`mt-1 text-sm leading-relaxed text-slate-600 ${open ? "" : "line-clamp-4"}`}>
+            {nist_control.text}
+          </p>
         </div>
       )}
+
+      {/* Expanded detail: KEV action + threat detail */}
+      {open && (
+        <div className="grid gap-4 border-t border-slate-100 px-5 py-4 text-sm sm:grid-cols-2">
+          {kev.in_kev && (
+            <div>
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-400">CISA KEV</div>
+              {kev.date_added && <div className="mt-0.5 text-slate-600">Added {kev.date_added}</div>}
+              {kev.required_action && (
+                <div className="mt-0.5 text-slate-600">Required action: {kev.required_action}</div>
+              )}
+            </div>
+          )}
+          {matched_threat && (
+            <div>
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-400">Threat campaign</div>
+              <div className="mt-0.5 text-slate-600">
+                {matched_threat.campaign_name} — {matched_threat.threat_actor}
+              </div>
+              <div className="text-slate-500">
+                {matched_threat.ransomware_association ? "ransomware-associated · " : ""}
+                confidence: {matched_threat.confidence}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Expand / collapse */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full border-t border-slate-100 bg-slate-50/60 py-2.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+      >
+        {open ? "Show less ▲" : "Show score breakdown, full control text & evidence ▼"}
+      </button>
     </Card>
   );
 }
