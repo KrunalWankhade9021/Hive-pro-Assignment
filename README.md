@@ -105,7 +105,8 @@ python scripts/build_kb.py
 
 # Optional: enable LLM-generated explanations (otherwise a deterministic
 # template is used). Free key from https://console.groq.com
-echo 'GROQ_API_KEY=your_key_here' > .env
+# Copy the example env file and add your key (see backend/.env.example for all vars):
+cp .env.example .env   # then edit .env and set GROQ_API_KEY
 
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
