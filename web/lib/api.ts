@@ -1,4 +1,4 @@
-import { Risk, Stats } from "./types";
+import { Advisory, Risk, Stats } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -16,6 +16,15 @@ export async function getStats(): Promise<Stats> {
   const res = await fetch(`${BASE}/stats`, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Stats API returned ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Fetch the ingested MDR threat advisory (the report that triggered the assessment). */
+export async function getAdvisory(): Promise<Advisory> {
+  const res = await fetch(`${BASE}/advisory`, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Advisory API returned ${res.status}`);
   }
   return res.json();
 }

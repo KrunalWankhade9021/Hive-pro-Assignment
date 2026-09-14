@@ -53,6 +53,21 @@ export interface BusinessService {
   [key: string]: unknown;
 }
 
+export interface Campaign {
+  name: string;
+  threat_actor: string | null;
+  target_profile: string | null;
+  exploit_chain: string | null;
+  ransomware: string | null;
+  confidence: string | null;
+  summary: string | null;
+}
+
+export interface Advisory {
+  raw_markdown: string;
+  campaigns: Campaign[];
+}
+
 export interface Stats {
   total_assets: number;
   internet_exposed_assets: number;

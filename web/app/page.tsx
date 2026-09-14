@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getTopRisks, getStats } from "@/lib/api";
-import { Risk, Stats } from "@/lib/types";
+import { getTopRisks, getStats, getAdvisory } from "@/lib/api";
+import { Advisory, Risk, Stats } from "@/lib/types";
 import { RiskCard } from "./components/RiskCard";
 import { StatBar } from "./components/StatBar";
+import { AdvisoryPanel } from "./components/AdvisoryPanel";
 
 export default function Home() {
   const [risks, setRisks] = useState<Risk[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [advisory, setAdvisory] = useState<Advisory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -25,6 +27,12 @@ export default function Home() {
       setError(e instanceof Error ? e.message : "Failed to load risks");
     } finally {
       setLoading(false);
+    }
+    // The advisory is supporting context; a failure here must not break the page.
+    try {
+      setAdvisory(await getAdvisory());
+    } catch {
+      setAdvisory(null);
     }
   }, []);
 
@@ -60,6 +68,8 @@ export default function Home() {
         </p>
         {generatedAt && <p className="mt-2 text-xs text-slate-400">Generated {generatedAt}</p>}
       </header>
+
+      {advisory && <AdvisoryPanel advisory={advisory} />}
 
       {stats && (
         <section className="mb-8">

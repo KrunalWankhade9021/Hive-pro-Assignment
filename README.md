@@ -41,6 +41,15 @@ factors, so the reasoning is visible at a glance. Cards expand to reveal the ful
 NIST control text, the per-factor score legend, the CISA KEV required action, and
 the matched campaign detail.
 
+The MDR threat report (`synthetic_threat_report.md`) is ingested and surfaced at
+the top of the dashboard as the advisory that triggered the assessment (served by
+`GET /advisory` with its campaigns parsed out). Its analyst prioritisation
+guidance — internet exposure, then active exploitation, then ransomware
+association, then business criticality and compliance scope, then missing
+compensating controls — is exactly the ordering the scoring weights below
+implement, so the report is not just displayed but is the stated rationale for how
+risks are ranked.
+
 ## Architecture
 
 ```mermaid
