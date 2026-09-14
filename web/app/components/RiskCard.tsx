@@ -33,12 +33,13 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
   const { asset, vulnerability: vuln, business_service: svc, kev, matched_threat, nist_control } = risk;
   const [open, setOpen] = useState(false);
   const sev = severityColor(vuln.severity);
+  const detailId = `detail-${vuln.vuln_id}`;
 
   const compliance =
     svc?.compliance_scope && svc.compliance_scope !== "None" ? svc.compliance_scope : null;
 
   return (
-    <Card className="overflow-hidden border-l-4" style={{ borderLeftColor: sev }}>
+    <Card className="risk-card overflow-hidden border-l-4" style={{ borderLeftColor: sev }}>
       {/* Header: rank marker, title, severity, score */}
       <div className="flex items-start justify-between gap-4 p-4">
         <div className="flex items-start gap-3">
@@ -154,12 +155,16 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
               {Math.round(nist_control.similarity * 100)}% match
             </span>
           </div>
-          <p className={`mt-1 text-xs leading-relaxed text-muted ${open ? "" : "line-clamp-2"}`}>
+          <p
+            className={`mt-1 text-xs leading-relaxed text-muted ${
+              open ? "" : "line-clamp-2 print:line-clamp-none"
+            }`}
+          >
             {nist_control.text}
           </p>
 
-          {open && risk.alternative_controls.length > 0 && (
-            <div className="mt-2">
+          {risk.alternative_controls.length > 0 && (
+            <div className={`mt-2 ${open ? "" : "hidden print:block"}`}>
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
                 Other relevant controls
               </div>
@@ -181,49 +186,55 @@ export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
         </div>
       )}
 
-      {/* Expanded detail: CISA KEV + evidence table */}
-      {open && (
-        <div className="grid gap-4 border-t border-line px-4 py-3 text-xs sm:grid-cols-2">
-          {kev.in_kev && (
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-                CISA KEV
-              </div>
-              {kev.date_added && <div className="mt-1 text-muted">Added {kev.date_added}</div>}
-              {kev.required_action && (
-                <div className="mt-0.5 text-muted">Required action: {kev.required_action}</div>
-              )}
+      {/* Expanded detail: CISA KEV + evidence table. Kept in the DOM and revealed
+          in print so a saved PDF is complete even when collapsed on screen. */}
+      <div
+        id={detailId}
+        className={`grid gap-4 border-t border-line px-4 py-3 text-xs sm:grid-cols-2 ${
+          open ? "" : "hidden print:grid"
+        }`}
+      >
+        {kev.in_kev && (
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+              CISA KEV
             </div>
-          )}
+            {kev.date_added && <div className="mt-1 text-muted">Added {kev.date_added}</div>}
+            {kev.required_action && (
+              <div className="mt-0.5 text-muted">Required action: {kev.required_action}</div>
+            )}
+          </div>
+        )}
 
-          <div className="sm:col-span-2">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
-              Evidence
+        <div className="sm:col-span-2">
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
+            Evidence
+          </div>
+          <div className="grid gap-x-6 sm:grid-cols-2">
+            <div>
+              <EvidenceRow label="CVSS" value={String(vuln.cvss)} />
+              <EvidenceRow label="Internet exposed" value={yn(asset.internet_exposed)} />
+              <EvidenceRow label="Exploit available" value={yn(vuln.exploit_available)} />
+              <EvidenceRow label="Days open" value={String(vuln.days_open)} />
             </div>
-            <div className="grid gap-x-6 sm:grid-cols-2">
-              <div>
-                <EvidenceRow label="CVSS" value={String(vuln.cvss)} />
-                <EvidenceRow label="Internet exposed" value={yn(asset.internet_exposed)} />
-                <EvidenceRow label="Exploit available" value={yn(vuln.exploit_available)} />
-                <EvidenceRow label="Days open" value={String(vuln.days_open)} />
-              </div>
-              <div>
-                <EvidenceRow label="CISA KEV" value={yn(kev.in_kev)} />
-                <EvidenceRow label="Ransomware" value={yn(kev.ransomware)} />
-                <EvidenceRow label="Active campaign" value={yn(matched_threat !== null)} />
-                <EvidenceRow label="EDR installed" value={yn(asset.edr_installed)} />
-              </div>
+            <div>
+              <EvidenceRow label="CISA KEV" value={yn(kev.in_kev)} />
+              <EvidenceRow label="Ransomware" value={yn(kev.ransomware)} />
+              <EvidenceRow label="Active campaign" value={yn(matched_threat !== null)} />
+              <EvidenceRow label="EDR installed" value={yn(asset.edr_installed)} />
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Expand / collapse */}
+      {/* Expand / collapse (hidden in print, where detail is always shown) */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full border-t border-line py-2 text-[11px] font-medium uppercase tracking-wider text-muted transition hover:bg-paper hover:text-ink"
+        aria-controls={detailId}
+        aria-label={`${open ? "Hide" : "Show"} control text, CISA KEV and evidence for ${vuln.cve}`}
+        className="no-print w-full border-t border-line py-2 text-[11px] font-medium uppercase tracking-wider text-muted transition hover:bg-paper hover:text-ink"
       >
         {open ? "Hide detail" : "Show control text, KEV & evidence"}
       </button>

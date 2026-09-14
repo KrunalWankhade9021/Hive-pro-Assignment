@@ -22,7 +22,7 @@ export function StatBar({ stats }: { stats: Stats }) {
   return (
     <div className="grid grid-cols-2 divide-line rounded-md border border-line bg-card sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
       {items.map((s) => (
-        <div key={s.label} className="border-b border-line px-4 py-3 lg:border-b-0">
+        <div key={s.label} className="stat-block border-b border-line px-4 py-3 lg:border-b-0">
           <div
             className={`font-mono text-xl tabular-nums ${s.emphasis ? "text-sev-critical" : "text-ink"}`}
           >

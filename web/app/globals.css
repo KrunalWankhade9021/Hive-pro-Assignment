@@ -16,3 +16,33 @@ body {
     text-wrap: balance;
   }
 }
+
+/* Keyboard focus: a subtle navy ring, visible only for keyboard users. */
+:focus-visible {
+  outline: 2px solid #1b3a5b;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Print / Save-as-PDF: produce a clean board-ready dossier. Interactive chrome
+   is hidden, colours are preserved, and each card stays on one page. Collapsed
+   card detail is revealed so the printed report is complete. */
+@media print {
+  :root {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  * {
+    box-shadow: none !important;
+  }
+  .risk-card,
+  .stat-block {
+    break-inside: avoid;
+  }
+}
