@@ -22,7 +22,7 @@ OSCAL_URL = (
     "https://raw.githubusercontent.com/usnistgov/oscal-content/main/"
     "nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json"
 )
-MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+MODEL = "BAAI/bge-small-en-v1.5"
 COLLECTION = "nist80053"
 
 
@@ -73,7 +73,7 @@ def fetch_oscal() -> dict:
 
 
 def build_chroma(controls: list[dict], persist_dir: Path) -> None:
-    """Embed controls with all-MiniLM-L6-v2 into a persisted cosine collection."""
+    """Embed controls with the configured model into a persisted cosine collection."""
     persist_dir = Path(persist_dir)
     persist_dir.mkdir(parents=True, exist_ok=True)
 
