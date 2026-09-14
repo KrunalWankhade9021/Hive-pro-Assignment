@@ -31,6 +31,16 @@ CVSS 10 on a development server. The current top of the list is CVE-2023-4966
 Fortinet SSL-VPN RCE (CVE-2024-21762) on the production VPN edges — both actively
 exploited, internet-facing, and tied to named ransomware campaigns.
 
+The dashboard presents this as a portfolio summary (assets, internet-exposed and
+critical counts, vulnerabilities with known exploits, CISA KEV and
+ransomware-linked totals, and active campaigns matched versus industry noise
+filtered out) followed by the ranked risk cards. Each card shows the weighted
+score as a labelled number — not a 0–100 bar, since the score is additive and can
+exceed 100 — alongside a stacked bar that breaks the score into its contributing
+factors, so the reasoning is visible at a glance. Cards expand to reveal the full
+NIST control text, the per-factor score legend, the CISA KEV required action, and
+the matched campaign detail.
+
 ## Architecture
 
 ```mermaid
@@ -120,6 +130,13 @@ for the API; override with `NEXT_PUBLIC_API_URL` if needed.
 
 ```bash
 cd backend && . .venv/bin/activate && pytest
+```
+
+**RAG evaluation** (reproduces the retrieval metrics in this README; requires the
+vector store from `build_kb.py`):
+
+```bash
+cd backend && . .venv/bin/activate && python -m eval.evaluate_rag
 ```
 
 ---
@@ -232,7 +249,9 @@ ranking's real-world fidelity.
 
 - **Backend:** Python 3.11, FastAPI, pandas, pydantic.
 - **Retrieval (RAG):** `sentence-transformers` (`bge-small-en-v1.5`), ChromaDB —
-  all local, no API key, reproducible.
+  all local, no API key, reproducible. Dense cosine retrieval ships by default; a
+  BM25 hybrid path (`rank-bm25`, Reciprocal Rank Fusion) is available and was
+  evaluated (see RAG evaluation above).
 - **LLM (explanations only):** Groq, Qwen 3 (`qwen/qwen3.8-27b`), with a
   deterministic template fallback so the system degrades gracefully if the model
   is unavailable. The LLM only phrases the explanation from evidence the engine
