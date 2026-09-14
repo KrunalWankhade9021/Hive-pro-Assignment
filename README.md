@@ -1,7 +1,7 @@
 # AI-Powered Cyber Risk Assistant
 
-A system that joins TawasolPay's security data — asset inventory, open
-vulnerabilities, threat intelligence, and business-service context — into a
+A system that joins TawasolPay's security data (asset inventory, open
+vulnerabilities, threat intelligence, and business-service context) into a
 single prioritised, explainable risk picture, and retrieves the relevant
 NIST SP 800-53 remediation control for each of the top risks.
 
@@ -28,25 +28,24 @@ The ranking is deliberately **not** CVSS alone. An internet-exposed CVSS 8 on a
 payment gateway with an active ransomware campaign ranks above an internal
 CVSS 10 on a development server. The current top of the list is CVE-2023-4966
 (CitrixBleed) on the customer-login and payment load balancers, followed by the
-Fortinet SSL-VPN RCE (CVE-2024-21762) on the production VPN edges — both actively
+Fortinet SSL-VPN RCE (CVE-2024-21762) on the production VPN edges, both actively
 exploited, internet-facing, and tied to named ransomware campaigns.
 
 The dashboard presents this as a portfolio summary (assets, internet-exposed and
 critical counts, vulnerabilities with known exploits, CISA KEV and
 ransomware-linked totals, and active campaigns matched versus industry noise
-filtered out) followed by the ranked risk cards. Each card shows the weighted
-score as a labelled number — not a 0–100 bar, since the score is additive and can
-exceed 100 — alongside a stacked bar that breaks the score into its contributing
-factors, so the reasoning is visible at a glance. Cards expand to reveal the full
-NIST control text, the per-factor score legend, the CISA KEV required action, and
-the matched campaign detail.
+filtered out) followed by the ranked risk cards. Each card shows the score
+normalised to 0-100, with an itemised breakdown of every factor that contributed
+to it (and the raw additive total alongside), so the reasoning is visible at a
+glance. Cards expand to reveal the full NIST control text, the CISA KEV required
+action, and the matched campaign detail.
 
 The MDR threat report (`synthetic_threat_report.md`) is ingested and surfaced at
 the top of the dashboard as the advisory that triggered the assessment (served by
 `GET /advisory` with its campaigns parsed out). Its analyst prioritisation
-guidance — internet exposure, then active exploitation, then ransomware
+guidance, internet exposure, then active exploitation, then ransomware
 association, then business criticality and compliance scope, then missing
-compensating controls — is exactly the ordering the scoring weights below
+compensating controls, is exactly the ordering the scoring weights below
 implement, so the report is not just displayed but is the stated rationale for how
 risks are ranked.
 
@@ -78,8 +77,8 @@ flowchart TD
 ```
 
 The scoring is a transparent additive formula, not a black box. Each factor that
-contributes is stored and shown on the dashboard as a stacked bar, so every
-score can be read back to its causes:
+contributes is stored and shown on the dashboard as an itemised breakdown, so
+every score can be read back to its causes:
 
 ```
 weighted score = (CVSS / 10) * 25          # severity, bounded
@@ -98,7 +97,7 @@ ordering never depends on input row order.
 
 ## Running locally
 
-### Option A — Docker (one command)
+### Option A, Docker (one command)
 
 Prerequisites: Docker with Compose v2.
 
@@ -108,18 +107,18 @@ docker compose up --build
 ```
 
 Then open http://localhost. Compose builds three services behind a Caddy
-reverse proxy — the FastAPI API (`/api/*`), the Next.js dashboard (everything
+reverse proxy, the FastAPI API (`/api/*`), the Next.js dashboard (everything
 else), and Caddy itself. The first build is slow: the API image fetches CISA KEV
 and NIST 800-53 and embeds ~1,196 controls so the knowledge base is baked into
 the image and the container needs no network at runtime. `SITE_ADDRESS` in
 `.env` defaults to `:80` (serve on the raw host/IP); set it to a domain name for
 automatic HTTPS.
 
-### Option B — run the services directly
+### Option B, run the services directly
 
 Prerequisites: Python 3.11+, Node 20+.
 
-**1. Backend — build the knowledge base and start the API.**
+**1. Backend, build the knowledge base and start the API.**
 
 ```bash
 cd backend
@@ -128,7 +127,7 @@ python3.11 -m venv .venv
 pip install -e ".[dev]"
 
 # Fetch CISA KEV + NIST 800-53 and build the vector store (one-time; downloads
-# the embedding model and embeds ~1,196 controls — takes a few minutes).
+# the embedding model and embeds ~1,196 controls, takes a few minutes).
 python scripts/build_kb.py
 
 # Optional: enable LLM-generated explanations (otherwise a deterministic
@@ -139,12 +138,12 @@ cp .env.example .env   # then edit .env and set GROQ_API_KEY
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-The API is then at http://127.0.0.1:8000 — `GET /risks/top?n=5`, `GET /stats`,
+The API is then at http://127.0.0.1:8000, `GET /risks/top?n=5`, `GET /stats`,
 `GET /health`, and interactive docs at `/docs`. The first `/risks/top` call
 loads the embedding model and calls the LLM, so it takes a few seconds; results
 are cached thereafter.
 
-**2. Frontend — the dashboard.**
+**2. Frontend, the dashboard.**
 
 ```bash
 cd web
@@ -170,17 +169,17 @@ cd backend && . .venv/bin/activate && python -m eval.evaluate_rag
 
 ---
 
-## Supporting question 1 — the data split
+## Supporting question 1, the data split
 
 **Embedded (semantic retrieval): only the NIST SP 800-53 control catalogue.**
 These are roughly 1,196 unstructured, natural-language control descriptions,
 where the right control for a given finding is a matter of meaning rather than an
-exact key — there is no field to filter on for "the control about correcting
+exact key, there is no field to filter on for "the control about correcting
 software flaws." We embed the control prose with a sentence-transformer
 (`bge-small-en-v1.5`) into ChromaDB and retrieve by cosine similarity.
 
 **Queried as structured records: the five CSVs and the CISA KEV catalogue.**
-These are rows with exact keys — CVE IDs, `asset_id`, booleans, enumerations —
+These are rows with exact keys (CVE IDs, `asset_id`, booleans, enumerations),
 so the operations that matter are exact joins and filters: does this CVE appear
 in KEV, is this asset internet-exposed, which service does it support. Those are
 precise, fast, auditable, and reproducible as structured queries. Embedding them
@@ -193,7 +192,7 @@ Retrieval quality is measured, not assumed. `backend/eval/golden_set.py` holds 2
 real vulnerabilities from the data pack, each hand-labelled with the NIST 800-53
 control family (or families) a security engineer would accept as a correct
 remediation reference. Labels were assigned by what the control *should* be and
-then measured — not fitted to what the retriever returns.
+then measured, not fitted to what the retriever returns.
 `python -m eval.evaluate_rag` reports family-level metrics (top-k = 10).
 
 We also ran a controlled experiment: dense-only retrieval versus a hybrid of
@@ -206,7 +205,7 @@ dense cosine and BM25 lexical search fused with Reciprocal Rank Fusion.
 | MRR                 | 0.49  | 0.52                  |
 | Mean top-1 similarity | 0.65 | 0.62                 |
 
-Hybrid did not improve retrieval — Hit-rate@1 was unchanged, Hit-rate@3 dropped,
+Hybrid did not improve retrieval, Hit-rate@1 was unchanged, Hit-rate@3 dropped,
 and mean similarity fell; only MRR rose marginally. NIST control prose is
 conceptual rather than keyword-keyed, so the lexical signal mostly pulled in
 tangentially-worded controls. The system therefore ships **dense retrieval**; the
@@ -214,21 +213,21 @@ hybrid path is kept in the code as a reproducible experiment (`mode="hybrid"`).
 
 Caveats, stated plainly: the golden set is small (22 cases), the metric is
 family-level rather than exact-control, and a single embedding model is used. A
-Hit-rate@1 near 0.45 is a mix — some "misses" return a defensible neighbouring
+Hit-rate@1 near 0.45 is a mix, some "misses" return a defensible neighbouring
 control (for example the Fortinet authentication-bypass finding retrieving IA-11
 Re-authentication, an access-control-family control), while others are genuine
 misses (a hardcoded-credentials finding retrieving SC-4 rather than an IA
 control). Notably, the vulnerabilities that actually surface in the ranked top
-five — CitrixBleed, the Fortinet SSL-VPN RCE, regreSSHion, the PostgreSQL
-privilege escalation — all retrieve a correct, sensible control; the harder eval
+five, CitrixBleed, the Fortinet SSL-VPN RCE, regreSSHion, the PostgreSQL
+privilege escalation, all retrieve a correct, sensible control; the harder eval
 cases are lower-priority findings that never reach the top of the list. The value
 here is the measured, reproducible comparison and the honest decision it drove.
 
-## Supporting question 2 — where it can go wrong
+## Supporting question 2, where it can go wrong
 
 **1. A real CVE in our environment is absent from the CISA KEV snapshot.**
 Three of the twenty real CVEs in `vulnerabilities.csv` are not in the KEV
-catalogue we pulled — including `CVE-2024-6387` (OpenSSH regreSSHion), a
+catalogue we pulled, including `CVE-2024-6387` (OpenSSH regreSSHion), a
 high-severity unauthenticated RCE. If the system treated KEV as the sole signal
 for "actively exploited," these would be silently under-ranked. The ranking
 therefore never relies on KEV alone: it also credits the vulnerability's own
@@ -241,9 +240,9 @@ false all-clear.
 **2. The retriever returns a plausible but wrong NIST control.** Semantic search
 can surface a near-miss. This happened in development: an earlier, smaller
 embedding model mapped the Fortinet SSL-VPN RCE to "Attack Surface Reduction" at
-a cosine similarity of about 0.25. The mitigations are concrete — we moved to a
+a cosine similarity of about 0.25. The mitigations are concrete, we moved to a
 stronger embedding model, which raised the correct-control similarity for the
-top risks to roughly 0.62–0.68; retrieval is constrained to base controls rather
+top risks to roughly 0.62-0.68; retrieval is constrained to base controls rather
 than obscure enhancements; every result shows its match percentage on the
 dashboard, so a weak retrieval is visible rather than hidden; and unit tests pin
 representative finding types to their expected control families (patching to
@@ -255,12 +254,12 @@ marks only 21 assets as internet-exposed. Trusting the vulnerability column woul
 over-rank internal assets. We resolve this by treating the asset-level
 `internet_exposed` field as the single source of truth and logging the
 discrepancy. More broadly, the ranking is only as accurate as the CSVs feeding
-it — a mis-tagged criticality or a stale asset record would skew a score without
-any outward sign — which is why an input-consistency check that flags rows where
+it, a mis-tagged criticality or a stale asset record would skew a score without
+any outward sign, which is why an input-consistency check that flags rows where
 the two exposure fields conflict is the right guard, and the same pattern extends
 to other cross-field inconsistencies.
 
-## Supporting question 3 — the one thing I would change
+## Supporting question 3, the one thing I would change
 
 Propagate business criticality through the service-dependency graph. Today a
 risk's business impact is taken only from the service that directly owns the
@@ -277,7 +276,7 @@ ranking's real-world fidelity.
 ## Technology
 
 - **Backend:** Python 3.11, FastAPI, pandas, pydantic.
-- **Retrieval (RAG):** `sentence-transformers` (`bge-small-en-v1.5`), ChromaDB —
+- **Retrieval (RAG):** `sentence-transformers` (`bge-small-en-v1.5`), ChromaDB;
   all local, no API key, reproducible. Dense cosine retrieval ships by default; a
   BM25 hybrid path (`rank-bm25`, Reciprocal Rank Fusion) is available and was
   evaluated (see RAG evaluation above).
@@ -298,8 +297,8 @@ the LLM is confined to the last-mile task of writing a sentence.
   intelligence, business services, one-line remediation hints, and the MDR
   advisory. The one-line hints are used only to sharpen the retrieval query;
   the guidance shown always comes from the NIST catalogue.
-- **CISA Known Exploited Vulnerabilities catalogue** — fetched at build time;
+- **CISA Known Exploited Vulnerabilities catalogue**, fetched at build time;
   cross-referenced by exact CVE to confirm active exploitation and ransomware
   association.
-- **NIST SP 800-53 Rev. 5 control catalogue** — fetched at build time from
+- **NIST SP 800-53 Rev. 5 control catalogue**, fetched at build time from
   NIST's official OSCAL release, embedded, and retrieved per risk.

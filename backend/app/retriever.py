@@ -5,7 +5,7 @@ semantic half of the system: given a vulnerability, find the control in the
 embedded NIST catalog whose prose best matches the remediation need.
 
 Two embedding lookups shape the query, and both use the ``remediation_guidance.csv``
-hints only to *build the query* — never as the answer:
+hints only to *build the query*, never as the answer:
 
 1. The vulnerability is matched to its closest remediation hint by cosine
    similarity (the hint is a domain expert's one-line categorisation of the
@@ -16,8 +16,8 @@ hints only to *build the query* — never as the answer:
 
 Retrieval runs in one of two modes:
 
-- ``"dense"`` — pure cosine similarity over the embedded control catalog.
-- ``"hybrid"`` — the dense ranking fused with a BM25 lexical ranking over the
+- ``"dense"``, pure cosine similarity over the embedded control catalog.
+- ``"hybrid"``, the dense ranking fused with a BM25 lexical ranking over the
   same control corpus via Reciprocal Rank Fusion (RRF).
 
 The returned guidance text always comes from the embedded NIST catalog itself,

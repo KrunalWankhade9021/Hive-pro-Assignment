@@ -2,10 +2,10 @@
 
 Runs the retriever over every golden case and reports family-level metrics:
 
-- Hit-rate@1  — top-ranked control's base id is in the expected families.
-- Hit-rate@3  — any of the top 3 base controls is in the expected families.
-- MRR         — mean reciprocal rank of the first correct control (within top-k).
-- mean top-1 similarity — average dense cosine score of the top result.
+- Hit-rate@1 , top-ranked control's base id is in the expected families.
+- Hit-rate@3 , any of the top 3 base controls is in the expected families.
+- MRR        , mean reciprocal rank of the first correct control (within top-k).
+- mean top-1 similarity, average dense cosine score of the top result.
 
 Run:  python -m eval.evaluate_rag           (both modes)
       python -m eval.evaluate_rag dense     (one mode)
@@ -92,7 +92,7 @@ def evaluate(mode: str) -> dict:
 
 
 def _print_report(result: dict) -> None:
-    print(f"\n=== RAG evaluation — mode: {result['mode']} (n={result['n']}) ===")
+    print(f"\n=== RAG evaluation, mode: {result['mode']} (n={result['n']}) ===")
     print(f"{'case':18}{'top-1':9}{'sim':7}{'hit@1':7}{'hit@3':7}expected")
     for r in result["rows"]:
         print(

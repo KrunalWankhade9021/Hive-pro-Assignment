@@ -107,7 +107,7 @@ def test_real_dataset_top5_prioritizes_exposed_ransomware_critical():
     kev = load_kev(KEV_PATH) if KEV_PATH.exists() else {}
     # Act
     risks = build_risks(_data(), kev=kev, retriever=_stub_retriever, explainer=_stub_explainer, n=5)
-    # Assert: genuine differentiation — the top-5 are not all the same score.
+    # Assert: genuine differentiation, the top-5 are not all the same score.
     scores = [r.risk_score for r in risks]
     assert len(set(scores)) > 1, f"top-5 not differentiated: {scores}"
     assert scores == sorted(scores, reverse=True)

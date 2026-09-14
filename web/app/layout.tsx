@@ -1,21 +1,31 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Inter, IBM_Plex_Mono, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+const plexSerif = IBM_Plex_Serif({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-serif",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "TawasolPay — Top Cyber Risks",
-  description: "Prioritised, explainable cyber risk report with retrieved NIST SP 800-53 guidance.",
+  title: "TawasolPay Cyber Risk Briefing",
+  description: "Prioritised, explainable cyber risk briefing with retrieved NIST SP 800-53 guidance.",
 };
 
 export default function RootLayout({
@@ -25,9 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${inter.variable} ${plexMono.variable} ${plexSerif.variable} antialiased`}>
         {children}
       </body>
     </html>

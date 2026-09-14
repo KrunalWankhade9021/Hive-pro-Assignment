@@ -83,9 +83,9 @@ export interface Stats {
 
 export interface Risk {
   rank: number;
-  /** Raw additive weighted score — can exceed 100. Shown only as a breakdown detail. */
+  /** Raw additive weighted score, can exceed 100. Shown only as a breakdown detail. */
   risk_score: number;
-  /** Raw score normalised onto 0–100 (raw / 115 * 100); the headline figure. */
+  /** Raw score normalised onto 0-100 (raw / 115 * 100); the headline figure. */
   normalized_score: number;
   score_breakdown: Record<string, number>;
   asset: Asset;

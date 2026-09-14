@@ -2,7 +2,7 @@
 
 These exercise the real embedded catalog (built by ``scripts/build_kb.py``) using
 the production remediation hints, and assert that representative vulnerabilities
-retrieve a control from the expected NIST family — the behaviour the assignment
+retrieve a control from the expected NIST family, the behaviour the assignment
 specifically evaluates. They are skipped when the persisted store is absent so a
 fresh clone stays green.
 """

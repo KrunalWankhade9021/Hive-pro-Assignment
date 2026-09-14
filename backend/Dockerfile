@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Backend: FastAPI risk engine + NIST RAG store, built into the image.
-# Works on amd64 and arm64 (Oracle Ampere) — no arch-specific pins.
+# Works on amd64 and arm64 (Oracle Ampere), no arch-specific pins.
 #
 # Build context is the REPOSITORY ROOT (see docker-compose.yml) so the image can
 # copy both backend/ and the Dataset/ data pack and be fully self-contained.

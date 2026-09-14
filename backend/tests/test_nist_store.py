@@ -65,7 +65,7 @@ def test_control_retrieves_itself_at_low_distance(collection):
 
     The stored/displayed prose has parameters resolved for readability, while the
     embedding is computed from the verbatim statement, so the self-distance is
-    small but not exactly zero — the identity (top-1 is the control itself) is the
+    small but not exactly zero, the identity (top-1 is the control itself) is the
     property that matters.
     """
     model = SentenceTransformer(MODEL)
