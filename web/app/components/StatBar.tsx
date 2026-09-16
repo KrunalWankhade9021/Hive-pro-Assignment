@@ -4,34 +4,67 @@ interface Stat {
   label: string;
   value: number;
   sub?: string;
-  emphasis?: boolean; // subtle severity-red for KEV / ransomware counts
+  alarm?: boolean; // KEV / ransomware counts, the only red numbers on the page
 }
 
-/** A quiet strip of portfolio stats, small mono numbers, tiny labels, hairline
- *  dividers. Context for the ranked risks, not a hero of number cards. */
+/**
+ * Portfolio context for the ranked risks: what was assessed, and how much of it
+ * is actually exploited. A typographic strip rather than a row of number cards,
+ * so it reads as the preamble to the ranking instead of competing with it.
+ */
 export function StatBar({ stats }: { stats: Stats }) {
   const items: Stat[] = [
-    { label: "Assets", value: stats.total_assets, sub: `${stats.internet_exposed_assets} internet-exposed` },
-    { label: "Critical assets", value: stats.critical_assets, sub: "business-critical" },
-    { label: "Vulnerabilities", value: stats.total_vulnerabilities, sub: `${stats.exploited_count} with exploit` },
-    { label: "In CISA KEV", value: stats.kev_matches, sub: "actively exploited", emphasis: true },
-    { label: "Ransomware-linked", value: stats.ransomware_vulns, sub: "KEV or campaign", emphasis: true },
-    { label: "Active campaigns", value: stats.matched_campaigns, sub: `${stats.noise_campaigns} noise filtered` },
+    {
+      label: "Assets",
+      value: stats.total_assets,
+      sub: `${stats.internet_exposed_assets} internet-exposed`,
+    },
+    {
+      label: "Business-critical",
+      value: stats.critical_assets,
+      sub: "of those assets",
+    },
+    {
+      label: "Vulnerabilities",
+      value: stats.total_vulnerabilities,
+      sub: `${stats.exploited_count} with a known exploit`,
+    },
+    {
+      label: "In CISA KEV",
+      value: stats.kev_matches,
+      sub: "confirmed exploited",
+      alarm: true,
+    },
+    {
+      label: "Ransomware-linked",
+      value: stats.ransomware_vulns,
+      sub: "via KEV or campaign",
+      alarm: true,
+    },
+    {
+      label: "Active campaigns",
+      value: stats.matched_campaigns,
+      sub: `${stats.noise_campaigns} industry-noise records matched nothing we run`,
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 divide-line rounded-md border border-line bg-card sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
+    <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
       {items.map((s) => (
-        <div key={s.label} className="stat-block border-b border-line px-4 py-3 lg:border-b-0">
+        <div key={s.label}>
           <div
-            className={`font-mono text-xl tabular-nums ${s.emphasis ? "text-sev-critical" : "text-ink"}`}
+            className={`nums font-mono text-[26px] leading-none ${
+              s.alarm ? "text-alarm" : "text-ink"
+            }`}
           >
             {s.value}
           </div>
-          <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">
-            {s.label}
-          </div>
-          {s.sub && <div className="mt-0.5 text-[11px] leading-tight text-muted/70">{s.sub}</div>}
+          <div className="mt-1.5 text-[13px] text-muted">{s.label}</div>
+          {s.sub && (
+            <div className="mt-0.5 text-[11px] leading-snug text-faint">
+              {s.sub}
+            </div>
+          )}
         </div>
       ))}
     </div>

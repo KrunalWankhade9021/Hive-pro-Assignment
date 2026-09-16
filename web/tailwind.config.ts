@@ -9,21 +9,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Neutral base, an analyst dossier, not a SaaS dashboard.
-        paper: "#F4F5F7", // cool off-white page background
-        card: "#FFFFFF", // card surface
-        ink: "#191C22", // primary text (near-black)
-        muted: "#5B616E", // secondary text (grey)
-        line: "#E3E5E9", // hairline borders
-        // The single structural accent.
-        navy: "#1B3A5B",
-        // Severity, the only place bright colour appears.
-        sev: {
-          critical: "#B42318",
-          high: "#B54708",
-          medium: "#475467",
-          low: "#5B616E",
-        },
+        // A briefing read late, under time pressure. The ground is slate-navy
+        // rather than near-black: a document on a dimmed screen, not a console.
+        ground: "#0F1620", // page
+        surface: "#161F2B", // panel
+        raised: "#1C2734", // panel on panel (feature block, hovered row)
+        line: "#26313F", // hairline; used sparingly, depth carries structure
+        ink: "#E8EDF3", // primary text, the brightest thing on the page
+        muted: "#8B99AC", // secondary text
+        faint: "#5E6C7D", // tertiary: units, provenance
+        // One structural accent. Amber reads urgent but calm on slate, and
+        // leaves red free to mean something specific.
+        signal: "#D9822B",
+        // Rationed: ransomware association and the top-ranked risk only. If
+        // every row is an alarm, none of them is.
+        alarm: "#E5534B",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
@@ -31,10 +31,9 @@ const config: Config = {
         serif: ["var(--font-serif)", "Georgia", "serif"],
       },
       borderRadius: {
-        // Restrained corners, no big pill cards.
         DEFAULT: "3px",
         md: "4px",
-        lg: "5px",
+        lg: "6px",
       },
     },
   },

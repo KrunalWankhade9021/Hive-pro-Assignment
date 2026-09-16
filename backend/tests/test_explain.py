@@ -25,11 +25,32 @@ def _risk(**overrides) -> RankedRisk:
             "business_criticality": 10,
             "compliance_scope": 5,
         },
-        asset={"asset_name": "load-balancer-prod-01", "internet_exposed": True, "environment": "Production"},
-        vulnerability={"cve": "CVE-2023-4966", "cvss": 9.4, "vulnerability_name": "Citrix ADC Session Token Leak"},
-        matched_threat={"campaign_name": "IronVeil", "ransomware_association": True},
+        normalized_score=98.7,
+        asset={
+            "asset_name": "load-balancer-prod-01",
+            "internet_exposed": True,
+            "environment": "Production",
+            "edr_installed": False,
+        },
+        vulnerability={
+            "cve": "CVE-2023-4966",
+            "cvss": 9.4,
+            "vulnerability_name": "Citrix ADC Session Token Leak",
+            "exploit_available": True,
+            "days_open": 180,
+            "auth_required": False,
+        },
+        matched_threat={
+            "campaign_name": "IronVeil",
+            "threat_actor": "IronVeil",
+            "ransomware_association": True,
+        },
         kev=KevMatch(in_kev=True, ransomware=True, date_added="2023-10-18"),
-        business_service={"business_service": "Payment Processing", "compliance_scope": "PCI DSS"},
+        business_service={
+            "business_service": "Payment Processing",
+            "compliance_scope": "PCI DSS",
+            "revenue_impact": "Critical",
+        },
         nist_control=NistControl(id="sc-23", title="Session Authenticity", text="Protect the authenticity of sessions.", similarity=0.67),
     )
     defaults.update(overrides)
@@ -97,12 +118,63 @@ def test_explainer_falls_back_to_template_when_groq_raises():
     assert explainer.explain(risk) == template_explanation(risk)
 
 
+def test_explainer_falls_back_when_the_response_is_truncated():
+    """A reply cut off at the token cap is discarded, not shown as a half sentence."""
+    risk = _risk()
+    explainer = Explainer(groq_api_key=None)
+    explainer._client = _FakeGroq(
+        "Ranks #1 because the internet-facing load balancer is",
+        finish_reason="length",
+    )
+
+    assert explainer.explain(risk) == template_explanation(risk)
+
+
+def test_fact_payload_carries_no_scoring_weights():
+    """Weights are passed as factor names only, so no weight can be read as a CVSS.
+
+    ``score_breakdown`` holds values like ``cvss_base=23.5`` (CVSS scaled onto a
+    25-point slot). Sending those alongside the real ``cvss`` invited the model to
+    quote an impossible severity, so only the real CVSS appears as a number.
+    """
+    risk = _risk()
+
+    facts = Explainer._facts(risk)
+
+    assert facts["cvss"] == 9.4
+    assert facts["ranking_factors_that_applied"] == sorted(risk.score_breakdown)
+    numeric = {k: v for k, v in facts.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}
+    assert 23.5 not in numeric.values(), f"a scoring weight leaked into the payload: {numeric}"
+
+
+def test_fact_payload_labels_each_ranking_factor():
+    """The assignment's ranking factors are passed as explicit labelled evidence."""
+    facts = Explainer._facts(_risk())
+
+    for key in (
+        "internet_exposed",
+        "exploit_available",
+        "kev_ransomware_associated",
+        "matched_threat_campaign",
+        "revenue_impact",
+        "compliance_scope",
+        "edr_installed",
+    ):
+        assert key in facts, f"missing labelled ranking factor: {key}"
+
+
 class _FakeGroq:
     """Minimal stand-in for the Groq client mirroring chat.completions.create."""
 
-    def __init__(self, content: str = "", error: Exception | None = None):
+    def __init__(
+        self,
+        content: str = "",
+        error: Exception | None = None,
+        finish_reason: str = "stop",
+    ):
         self._content = content
         self._error = error
+        self._finish_reason = finish_reason
         self.chat = self  # so .chat.completions.create resolves back here
         self.completions = self
 
@@ -110,5 +182,5 @@ class _FakeGroq:
         if self._error:
             raise self._error
         message = type("M", (), {"content": self._content})
-        choice = type("C", (), {"message": message})
+        choice = type("C", (), {"message": message, "finish_reason": self._finish_reason})
         return type("R", (), {"choices": [choice]})

@@ -8,7 +8,7 @@ module-level factory functions so tests can substitute lightweight stubs.
 import logging
 from functools import lru_cache
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.advisory import load_advisory
@@ -42,8 +42,14 @@ app.add_middleware(
 )
 
 
+@lru_cache(maxsize=1)
 def _load_data() -> dict:
-    """Load the full data pack from the dataset directory."""
+    """Load and cache the full data pack from the dataset directory.
+
+    Cached because several entry points need it (the ranked build, the retriever's
+    remediation hints, the stats summary); without this the five CSVs are parsed
+    once per caller on every cold build.
+    """
     d = settings.dataset_dir
     return {
         "assets": load_assets(d / "assets.csv"),
@@ -64,11 +70,14 @@ def _load_advisory():
     return load_advisory(settings.dataset_dir / "synthetic_threat_report.md")
 
 
+@lru_cache(maxsize=1)
 def _build_retriever():
-    """Build the NIST retriever bound to the persisted vector store.
+    """Build and cache the NIST retriever bound to the persisted vector store.
 
     Returns the ranked-retrieval callable so the engine can surface the primary
-    control plus alternatives from a single query.
+    control plus alternatives from a single query. Cached because constructing a
+    retriever loads the sentence-transformer model and re-embeds the remediation
+    hints; without this, every distinct ``n`` passed to /risks/top reloads both.
     """
     hints = _load_data()["hints"]
     return NistRetriever(settings.data_dir / "chroma", hints=hints).retrieve_ranked
@@ -124,6 +133,11 @@ def advisory():
 
 
 @app.get("/risks/top")
-def top(n: int = 5):
-    """Return the top-n ranked risks with evidence, NIST guidance, and explanation."""
+def top(n: int = Query(5, ge=1, le=25)):
+    """Return the top-n ranked risks with evidence, NIST guidance, and explanation.
+
+    ``n`` is bounded: each risk costs two embeddings plus one LLM call, and an
+    unbounded value would build (and cache) the whole 114-risk set per request.
+    A negative value would also slice the ranked list from the end.
+    """
     return [r.model_dump() for r in _risks(n)]

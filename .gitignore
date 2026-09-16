@@ -30,3 +30,7 @@ docs/superpowers/
 
 # SDD workspace (git-ignored scratch)
 .superpowers/
+
+# Local exploration notebooks (large, embed plot outputs; not a deliverable)
+*.ipynb
+.ipynb_checkpoints/

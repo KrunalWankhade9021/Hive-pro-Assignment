@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { Inter, IBM_Plex_Mono, IBM_Plex_Serif } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+// One family, three cuts. Plex was drawn for technical documentation, which is
+// what this is; the mono is its native companion, so CVE and control ids sit in
+// the same voice as the prose around them rather than a borrowed one. The serif
+// is reserved for the MDR advisory, the one human-written document on the page.
+const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-sans",
   display: "swap",
 });
@@ -35,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${plexMono.variable} ${plexSerif.variable} antialiased`}>
+      <body className={`${plexSans.variable} ${plexMono.variable} ${plexSerif.variable} antialiased`}>
         {children}
       </body>
     </html>
