@@ -23,12 +23,17 @@ log = logging.getLogger(__name__)
 _GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 
 _PROMPT = (
-    "You are a cyber-risk analyst briefing a technical manager. In ONE plain-English "
-    "sentence, explain why this risk ranks #{rank} out of the organisation's open risks. "
-    "Use ONLY the facts below -- do not invent CVEs, scores, or campaigns, and do not "
-    "recommend fixes. Facts: {facts}"
+    "You are a cyber-risk analyst briefing a technical manager. "
+    "In ONE plain-English sentence, explain why this risk was ranked #{rank}. "
+    "The rank was calculated by a deterministic risk-scoring system; "
+    "you must not change or recalculate it. "
+    "Use ONLY the supplied facts. "
+    "Prioritize concrete evidence such as internet exposure, active exploitation, "
+    "threat campaign matches, ransomware association, business criticality, "
+    "and missing compensating controls when those facts are provided. "
+    "Do not invent or infer facts. Do not recommend remediation. "
+    "Facts: {facts}"
 )
-
 
 def template_explanation(risk: RankedRisk) -> str:
     """Return a deterministic one-sentence rationale for this risk's ranking."""
