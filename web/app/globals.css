@@ -2,47 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fixed light theme: a calm, dense analyst dossier that reads and prints
-   identically for every reviewer, independent of OS dark-mode preference. */
+/* Fixed dark theme: the briefing reads identically for every reviewer,
+   independent of OS preference. */
 body {
-  color: #191c22; /* ink */
-  background: #f4f5f7; /* paper */
+  color: #e8edf3; /* ink */
+  background: #0f1620; /* ground */
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+  /* Tabular figures for any number that sits in a column or gets compared. */
+  .nums {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-/* Keyboard focus: a subtle navy ring, visible only for keyboard users. */
+/* Keyboard focus: amber, the same accent that carries structure elsewhere. */
 :focus-visible {
-  outline: 2px solid #1b3a5b;
+  outline: 2px solid #d9822b;
   outline-offset: 2px;
   border-radius: 2px;
 }
 
-/* Print / Save-as-PDF: produce a clean board-ready dossier. Interactive chrome
-   is hidden, colours are preserved, and each card stays on one page. Collapsed
-   card detail is revealed so the printed report is complete. */
-@media print {
-  :root {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-  body {
-    background: #ffffff !important;
-  }
-  .no-print {
-    display: none !important;
-  }
-  * {
-    box-shadow: none !important;
-  }
-  .risk-card,
-  .stat-block {
-    break-inside: avoid;
+/* Motion only answers an action (expanding a risk); it is never ambient. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

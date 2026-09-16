@@ -332,6 +332,8 @@ ranking's real-world fidelity.
   not a CVSS score, and sending both invites the model to quote an impossible
   severity. The only number labelled `cvss` in the payload is the real one.
 - **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS.
+- **Deployment:** Docker Compose behind Caddy on a Google Cloud Compute Engine
+  VM, redeployed by GitHub Actions on push to `main` (see `deploy/CI-CD.md`).
 
 The intelligence is deliberate about which tool does what: the ranking is a
 transparent formula (auditable, reproducible), the remediation guidance is

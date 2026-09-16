@@ -2,242 +2,382 @@
 
 import { useState } from "react";
 import { Risk } from "@/lib/types";
-import { Card } from "@/components/ui/card";
 import { ScoreBreakdown } from "./ScoreBreakdown";
-
-const SEVERITY_COLOR: Record<string, string> = {
-  critical: "#B42318",
-  high: "#B54708",
-  medium: "#475467",
-  low: "#5B616E",
-};
-
-function severityColor(severity: string): string {
-  return SEVERITY_COLOR[severity.toLowerCase()] ?? SEVERITY_COLOR.low;
-}
 
 function yn(value: boolean): string {
   return value ? "Yes" : "No";
 }
 
-function EvidenceRow({ label, value }: { label: string; value: string }) {
+/** CISA writes vendor advisory links inline as "[https://...]". Left raw they
+ *  swallow several lines of the card, so lift the first one out as a link and
+ *  read the rest as prose. */
+function splitKevAction(action: string): { text: string; href: string | null } {
+  const match = action.match(/\[?(https?:\/\/[^\s\]]+)\]?/);
+  const text = action
+    .replace(/\[?https?:\/\/[^\s\]]+\]?/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([.,])/g, "$1")
+    .trim();
+  return { text, href: match ? match[1] : null };
+}
+
+/** A labelled fact in the three-up context row. */
+function Facet({
+  label,
+  primary,
+  lines,
+}: {
+  label: string;
+  primary: string;
+  lines: (string | null)[];
+}) {
   return (
-    <div className="flex items-center justify-between border-b border-line py-1 last:border-0">
-      <span className="text-muted">{label}</span>
-      <span className="font-mono tabular-nums text-ink">{value}</span>
+    <div>
+      <div className="text-[11px] text-faint">{label}</div>
+      <div className="mt-1 text-[14px] font-medium leading-snug text-ink">
+        {primary}
+      </div>
+      {lines.filter(Boolean).map((line) => (
+        <div key={line} className="text-[12px] leading-snug text-muted">
+          {line}
+        </div>
+      ))}
     </div>
   );
 }
 
-export function RiskCard({ risk, topN }: { risk: Risk; topN: number }) {
-  const { asset, vulnerability: vuln, business_service: svc, kev, matched_threat, nist_control } = risk;
-  const [open, setOpen] = useState(false);
-  const sev = severityColor(vuln.severity);
-  const detailId = `detail-${vuln.vuln_id}`;
+function EvidenceRow({
+  label,
+  value,
+  alarm,
+}: {
+  label: string;
+  value: string;
+  alarm?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-line/60 py-1.5 last:border-0">
+      <span className="text-[12.5px] text-muted">{label}</span>
+      <span
+        className={`nums font-mono text-[12.5px] ${
+          alarm && value === "Yes" ? "text-alarm" : "text-ink"
+        }`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
+/** The full body: context, reasoning, scoring, retrieved control, evidence. */
+function RiskDetail({ risk, topN }: { risk: Risk; topN: number }) {
+  const {
+    asset,
+    vulnerability: vuln,
+    business_service: svc,
+    kev,
+    matched_threat,
+    nist_control,
+  } = risk;
   const compliance =
-    svc?.compliance_scope && svc.compliance_scope !== "None" ? svc.compliance_scope : null;
+    svc?.compliance_scope && svc.compliance_scope !== "None"
+      ? svc.compliance_scope
+      : null;
 
   return (
-    <Card className="risk-card overflow-hidden border-l-4" style={{ borderLeftColor: sev }}>
-      {/* Header: rank marker, title, severity, score */}
-      <div className="flex items-start justify-between gap-4 p-4">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 w-7 flex-none font-mono text-2xl font-semibold leading-none text-navy">
-            {risk.rank}
-          </span>
-          <div>
-            <h2 className="text-[15px] font-semibold leading-snug text-ink">
-              {vuln.vulnerability_name}
-            </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="font-mono text-xs text-muted">{vuln.cve}</span>
-              <span className="text-muted/50">·</span>
-              <span className="font-mono text-xs text-muted">CVSS {vuln.cvss}</span>
-              <span
-                className="rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                style={{ color: sev, borderColor: sev }}
-              >
-                {vuln.severity}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex-none text-right">
-          <div className="font-mono text-2xl font-semibold tabular-nums text-ink">
-            {risk.normalized_score}
-            <span className="text-sm font-normal text-muted"> / 100</span>
-          </div>
-          <div className="text-[10px] uppercase tracking-wider text-muted">risk score</div>
-        </div>
-      </div>
-
-      {/* Concentration: a quiet inline note, not a loud banner */}
-      {risk.cve_concentration > 1 && (
-        <p
-          className="mx-4 mb-3 border-l-2 pl-2 text-xs text-muted"
-          style={{ borderLeftColor: sev }}
-        >
-          {vuln.cve} affects {risk.cve_concentration} of the top {topN} assets.
-        </p>
-      )}
-
-      {/* Compact meta row */}
-      <div className="grid gap-x-6 gap-y-2 px-4 text-xs sm:grid-cols-3">
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Asset</div>
-          <div className="mt-0.5 font-medium text-ink">{asset.asset_name}</div>
-          <div className="text-muted">
-            {asset.asset_type} · {asset.environment}
-            {asset.owner_team ? ` · ${asset.owner_team}` : " · unassigned owner"}
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Threat</div>
-          {matched_threat ? (
-            <>
-              <div className="mt-0.5 font-medium text-ink">{matched_threat.campaign_name}</div>
-              <div className="text-muted">
-                {matched_threat.threat_actor}
-                {matched_threat.ransomware_association ? " · ransomware" : ""}
-              </div>
-            </>
-          ) : (
-            <div className="mt-0.5 text-muted">No matched campaign</div>
-          )}
-        </div>
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-            Business service
-          </div>
-          <div className="mt-0.5 font-medium text-ink">
-            {svc ? svc.business_service : "Unmapped service"}
-          </div>
-          {svc && (
-            <div className="text-muted">
-              {svc.revenue_impact} impact{compliance ? ` · ${compliance}` : ""}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Why it ranks: considered prose, set in serif */}
-      <div className="px-4 pt-4">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-          Why it ranks here
-        </div>
-        <p className="mt-1 font-serif text-[13.5px] leading-relaxed text-ink/90">
-          {risk.explanation}
-        </p>
-      </div>
-
-      {/* Scoring drivers: the itemized multi-factor breakdown */}
-      <div className="px-4 pt-4">
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted">
-          Scoring drivers
-        </div>
-        <ScoreBreakdown
-          breakdown={risk.score_breakdown}
-          score={risk.risk_score}
-          normalized={risk.normalized_score}
+    <>
+      {/* Context: what it is, where it sits, and who it matters to */}
+      <div className="grid gap-5 border-t border-line px-5 py-4 sm:grid-cols-3 sm:px-6">
+        <Facet
+          label="Asset"
+          primary={asset.asset_name}
+          lines={[
+            `${asset.asset_type}, ${asset.environment}`,
+            asset.owner_team ?? "No assigned owner",
+          ]}
+        />
+        <Facet
+          label="Business service"
+          primary={svc ? svc.business_service : "Unmapped service"}
+          lines={
+            svc
+              ? [`${svc.revenue_impact} revenue impact`, compliance]
+              : ["No mapped owner"]
+          }
+        />
+        <Facet
+          label="Threat campaign"
+          primary={
+            matched_threat
+              ? matched_threat.campaign_name
+              : "No matched campaign"
+          }
+          lines={
+            matched_threat
+              ? [
+                  matched_threat.threat_actor,
+                  matched_threat.ransomware_association
+                    ? "Ransomware-associated"
+                    : null,
+                ]
+              : ["No active campaign targets this CVE"]
+          }
         />
       </div>
 
-      {/* NIST remediation: primary control always visible */}
-      {nist_control && (
-        <div className="mt-4 border-t border-line px-4 py-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="text-sm font-semibold text-ink">
-              <span className="font-mono text-navy">{nist_control.id.toUpperCase()}</span>{" "}
-              · {nist_control.title}
-            </div>
-            <span className="flex-none font-mono text-[11px] text-muted">
-              {Math.round(nist_control.similarity * 100)}% match
-            </span>
-          </div>
-          <p
-            className={`mt-1 text-xs leading-relaxed text-muted ${
-              open ? "" : "line-clamp-2 print:line-clamp-none"
-            }`}
-          >
-            {nist_control.text}
-          </p>
-
-          {risk.alternative_controls.length > 0 && (
-            <div className={`mt-2 ${open ? "" : "hidden print:block"}`}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-                Other relevant controls
-              </div>
-              <ul className="mt-1 space-y-0.5">
-                {risk.alternative_controls.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between text-xs text-muted">
-                    <span>
-                      <span className="font-mono text-ink">{c.id.toUpperCase()}</span> · {c.title}
-                    </span>
-                    <span className="font-mono tabular-nums text-muted">
-                      {Math.round(c.similarity * 100)}%
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="mt-1.5 text-[10px] text-muted/70">Source: NIST SP 800-53 Rev. 5</div>
-        </div>
+      {risk.cve_concentration > 1 && (
+        <p className="border-t border-line px-5 py-2.5 text-[12.5px] text-muted sm:px-6">
+          <span className="font-mono text-ink">{vuln.cve}</span> affects{" "}
+          {risk.cve_concentration} of the top {topN} risks, so one fix closes
+          more than one row.
+        </p>
       )}
 
-      {/* Expanded detail: CISA KEV + evidence table. Kept in the DOM and revealed
-          in print so a saved PDF is complete even when collapsed on screen. */}
-      <div
-        id={detailId}
-        className={`grid gap-4 border-t border-line px-4 py-3 text-xs sm:grid-cols-2 ${
-          open ? "" : "hidden print:grid"
-        }`}
-      >
-        {kev.in_kev && (
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-              CISA KEV
-            </div>
-            {kev.date_added && <div className="mt-1 text-muted">Added {kev.date_added}</div>}
-            {kev.required_action && (
-              <div className="mt-0.5 text-muted">Required action: {kev.required_action}</div>
-            )}
-          </div>
-        )}
+      {/* The reasoning, the arithmetic, and the retrieved guidance, side by side.
+          Prioritisation and remediation stay visibly separate: the scoring engine
+          decides the rank, the NIST control says what the practice should be. */}
+      <div className="grid gap-x-10 gap-y-7 border-t border-line px-5 py-5 sm:px-6 lg:grid-cols-[1.45fr_1fr]">
+        {/* The narrative side: why this one, then what the practice should be.
+            Stacked, because together they balance the arithmetic beside them. */}
+        <div className="space-y-7">
+          <section>
+            <h3 className="text-[11px] text-faint">Why it ranks here</h3>
+            <p className="mt-2 max-w-prose font-serif text-[14px] leading-relaxed text-ink/90">
+              {risk.explanation}
+            </p>
+          </section>
 
-        <div className="sm:col-span-2">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
-            Evidence
+          <section>
+            <h3 className="text-[11px] text-faint">Remediation guidance</h3>
+            {nist_control ? (
+              <>
+                <div className="mt-2 flex items-baseline justify-between gap-3">
+                  <span className="text-[14px] font-medium text-ink">
+                    <span className="font-mono text-signal">
+                      {nist_control.id.toUpperCase()}
+                    </span>{" "}
+                    {nist_control.title}
+                  </span>
+                  <span className="nums flex-none font-mono text-[12px] text-faint">
+                    {Math.round(nist_control.similarity * 100)}%
+                  </span>
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-muted">
+                  {nist_control.text}
+                </p>
+
+                {risk.alternative_controls.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-[11px] text-faint">Also relevant</div>
+                    <ul className="mt-1.5 space-y-1">
+                      {risk.alternative_controls.map((c) => (
+                        <li
+                          key={c.id}
+                          className="flex items-baseline justify-between gap-3 text-[12.5px] text-muted"
+                        >
+                          <span className="truncate">
+                            <span className="font-mono text-ink">
+                              {c.id.toUpperCase()}
+                            </span>{" "}
+                            {c.title}
+                          </span>
+                          <span className="nums flex-none font-mono text-faint">
+                            {Math.round(c.similarity * 100)}%
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="mt-3 text-[11px] text-faint">
+                  Retrieved from NIST SP 800-53 Rev. 5, not generated.
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-[13px] text-muted">
+                No control retrieved for this finding.
+              </p>
+            )}
+          </section>
+        </div>
+
+        <section>
+          <h3 className="mb-2.5 text-[11px] text-faint">Risk drivers</h3>
+          <ScoreBreakdown
+            breakdown={risk.score_breakdown}
+            score={risk.risk_score}
+            normalized={risk.normalized_score}
+          />
+        </section>
+      </div>
+
+      {/* Evidence: every claim above, traceable back to its source record. */}
+      <div className="grid gap-x-8 gap-y-5 border-t border-line bg-ground/40 px-5 py-4 sm:px-6 lg:grid-cols-[1fr_1fr_1.15fr]">
+        <div>
+          <div className="mb-1 text-[11px] text-faint">Evidence</div>
+          <EvidenceRow label="CVSS" value={String(vuln.cvss)} />
+          <EvidenceRow
+            label="Internet exposed"
+            value={yn(asset.internet_exposed)}
+          />
+          <EvidenceRow
+            label="Exploit available"
+            value={yn(vuln.exploit_available)}
+          />
+          <EvidenceRow label="Days open" value={String(vuln.days_open)} />
+        </div>
+        <div>
+          <div className="mb-1 text-[11px] text-faint" aria-hidden>
+            &nbsp;
           </div>
-          <div className="grid gap-x-6 sm:grid-cols-2">
+          <EvidenceRow label="In CISA KEV" value={yn(kev.in_kev)} alarm />
+          <EvidenceRow
+            label="Ransomware-associated"
+            value={yn(kev.ransomware)}
+            alarm
+          />
+          <EvidenceRow
+            label="Active campaign"
+            value={yn(matched_threat !== null)}
+            alarm
+          />
+          <EvidenceRow label="EDR installed" value={yn(asset.edr_installed)} />
+        </div>
+        <div>
+          <div className="mb-1 text-[11px] text-faint">CISA KEV</div>
+          {kev.in_kev ? (
+            <>
+              {kev.date_added && (
+                <p className="text-[12.5px] text-muted">
+                  Confirmed exploited since{" "}
+                  <span className="font-mono text-ink">{kev.date_added}</span>
+                </p>
+              )}
+              {kev.required_action &&
+                (() => {
+                  const { text, href } = splitKevAction(kev.required_action);
+                  return (
+                    <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
+                      {text}
+                      {href && (
+                        <>
+                          {" "}
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-signal underline-offset-4 hover:underline"
+                          >
+                            Vendor advisory
+                          </a>
+                        </>
+                      )}
+                    </p>
+                  );
+                })()}
+            </>
+          ) : (
+            <p className="text-[12.5px] leading-relaxed text-muted">
+              Not in the catalogue. That is not an all-clear: KEV lists only
+              exploitation CISA has confirmed.
+            </p>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/**
+ * A ranked risk. The top risk is presented open as the briefing's centrepiece;
+ * the rest are compact rows that expand into the same body, so the page has one
+ * thing to read and four to scan.
+ */
+export function RiskCard({
+  risk,
+  topN,
+  featured = false,
+}: {
+  risk: Risk;
+  topN: number;
+  featured?: boolean;
+}) {
+  const { asset, vulnerability: vuln, business_service: svc } = risk;
+  const [open, setOpen] = useState(false);
+  const detailId = `detail-${vuln.vuln_id}`;
+
+  if (featured) {
+    return (
+      <article className="overflow-hidden rounded-lg border border-l-2 border-line border-l-alarm bg-surface">
+        <div className="flex flex-wrap items-start justify-between gap-4 px-5 py-5 sm:px-6">
+          <div className="flex items-start gap-4">
+            <span className="nums mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded border border-signal/50 font-mono text-[14px] text-signal">
+              {risk.rank}
+            </span>
             <div>
-              <EvidenceRow label="CVSS" value={String(vuln.cvss)} />
-              <EvidenceRow label="Internet exposed" value={yn(asset.internet_exposed)} />
-              <EvidenceRow label="Exploit available" value={yn(vuln.exploit_available)} />
-              <EvidenceRow label="Days open" value={String(vuln.days_open)} />
+              <h2 className="text-[19px] font-semibold leading-tight tracking-tight text-ink">
+                {vuln.vulnerability_name}
+              </h2>
+              <div className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1 font-mono text-[12.5px] text-muted">
+                <span>{vuln.cve}</span>
+                <span>CVSS {vuln.cvss}</span>
+                <span className="text-alarm">{vuln.severity}</span>
+              </div>
             </div>
-            <div>
-              <EvidenceRow label="CISA KEV" value={yn(kev.in_kev)} />
-              <EvidenceRow label="Ransomware" value={yn(kev.ransomware)} />
-              <EvidenceRow label="Active campaign" value={yn(matched_threat !== null)} />
-              <EvidenceRow label="EDR installed" value={yn(asset.edr_installed)} />
+          </div>
+          {/* Sans, not mono: at display size the mono period claims a full cell
+              and the number reads as spaced-out digits rather than one figure. */}
+          <div className="text-right">
+            <div className="nums text-[42px] font-medium leading-none tracking-tight text-ink">
+              {risk.normalized_score}
+            </div>
+            {/* Name which number this is: the raw weighted total runs to 115 and
+                is itemised in the breakdown, so an unqualified "of 100" would
+                read as a different scale rather than a normalisation of it. */}
+            <div className="mt-1.5 text-[11px] text-faint">
+              risk score, normalised to 100
             </div>
           </div>
         </div>
-      </div>
+        <RiskDetail risk={risk} topN={topN} />
+      </article>
+    );
+  }
 
-      {/* Expand / collapse (hidden in print, where detail is always shown) */}
+  return (
+    <article className="overflow-hidden rounded-lg border border-line bg-surface">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={detailId}
-        aria-label={`${open ? "Hide" : "Show"} control text, CISA KEV and evidence for ${vuln.cve}`}
-        className="no-print w-full border-t border-line py-2 text-[11px] font-medium uppercase tracking-wider text-muted transition hover:bg-paper hover:text-ink"
+        className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-raised sm:px-6"
       >
-        {open ? "Hide detail" : "Show control text, KEV & evidence"}
+        <span className="nums flex h-6 w-6 flex-none items-center justify-center rounded border border-line font-mono text-[12px] text-muted">
+          {risk.rank}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14.5px] font-medium text-ink">
+            {vuln.vulnerability_name}
+          </span>
+          <span className="mt-0.5 block truncate font-mono text-[12px] text-faint">
+            {vuln.cve}&nbsp;&nbsp; {asset.asset_name}&nbsp;&nbsp;{" "}
+            {svc ? svc.business_service : "Unmapped service"}
+          </span>
+        </span>
+        <span className="nums flex-none text-[18px] font-medium tracking-tight text-ink">
+          {risk.normalized_score}
+        </span>
+        <span
+          aria-hidden
+          className={`flex-none text-faint transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          ▾
+        </span>
       </button>
-    </Card>
+      <div id={detailId} hidden={!open}>
+        <RiskDetail risk={risk} topN={topN} />
+      </div>
+    </article>
   );
 }
