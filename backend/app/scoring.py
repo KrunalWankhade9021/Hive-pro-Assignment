@@ -21,6 +21,13 @@ _REVENUE = {"Critical": 10, "High": 6, "Medium": 3, "Low": 0}
 _COMPLIANCE_STATUTORY = ("PCI", "GDPR", "PDPL")
 _COMPLIANCE_ATTESTATION = ("ISO", "SOC", "IFRS")
 
+# Some findings *are* the missing-EDR gap rather than a software flaw on a host
+# that happens to lack EDR (the scanner reports the control gap itself, with
+# ``affected_component`` "Endpoint Control"). Scoring those rows for missing EDR
+# as well would charge the same fact twice, once as the finding and once as the
+# asset's weakness.
+_EDR_CONTROL_COMPONENT = "Endpoint Control"
+
 
 def _compliance_points(scope: str) -> int:
     if any(k in scope for k in _COMPLIANCE_STATUTORY):
@@ -49,7 +56,7 @@ def score_risk(joined: JoinedRisk, kev: KevMatch, threat: ThreatIntel | None) ->
         comp = _compliance_points(s.compliance_scope)
         if comp:
             b["compliance_scope"] = comp
-    if not a.edr_installed:
+    if not a.edr_installed and v.affected_component != _EDR_CONTROL_COMPONENT:
         b["missing_edr"] = 5
     if not v.auth_required:
         b["no_auth_required"] = 3

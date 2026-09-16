@@ -146,3 +146,46 @@ def test_equal_score_ties_rank_production_above_staging():
     last_prod = max((i for i, e in enumerate(envs) if e == "Production"), default=-1)
     first_staging = next((i for i, e in enumerate(envs) if e == "Staging"), len(envs))
     assert last_prod < first_staging, f"Production must precede Staging on ties, got {envs}"
+
+
+def test_ranking_is_deterministic_across_runs():
+    """The same data must always produce the same ranked list.
+
+    Scores are coarse (most factors are fixed integers), so ties are common and a
+    sort on score alone would fall back to input order. ``_sort_key`` breaks every
+    tie down to ``vuln_id``; this pins that guarantee so a briefing regenerated
+    before a meeting cannot silently reorder.
+    """
+    # Arrange
+    kev = load_kev(KEV_PATH) if KEV_PATH.exists() else {}
+    # Act: two independent builds over freshly loaded data.
+    first = build_risks(_data(), kev=kev, retriever=_stub_retriever, explainer=_stub_explainer, n=10)
+    second = build_risks(_data(), kev=kev, retriever=_stub_retriever, explainer=_stub_explainer, n=10)
+    # Assert
+    assert [(r.rank, r.vulnerability["vuln_id"], r.risk_score) for r in first] == [
+        (r.rank, r.vulnerability["vuln_id"], r.risk_score) for r in second
+    ]
+
+
+def test_edr_control_gap_is_not_double_counted():
+    """A finding that *is* the missing-EDR gap must not also score missing_edr.
+
+    ``CTRL-SYN-001`` rows report the absent EDR agent itself, on assets whose
+    ``edr_installed`` is already False. Charging both would count one fact twice.
+    """
+    # Arrange
+    kev = load_kev(KEV_PATH) if KEV_PATH.exists() else {}
+    data = _data()
+    # Act: rank the whole set -- these rows score in the 40s and sit well outside
+    # any top-N, so a small n would make this assertion vacuous.
+    risks = build_risks(
+        data, kev=kev, retriever=_stub_retriever, explainer=_stub_explainer, n=len(data["vulns"])
+    )
+    # Assert
+    gaps = [r for r in risks if r.vulnerability["affected_component"] == "Endpoint Control"]
+    assert gaps, "fixture expectation: dataset contains EDR control-gap findings"
+    for r in gaps:
+        assert r.asset["edr_installed"] is False, "fixture expectation: EDR-gap rows lack EDR"
+        assert "missing_edr" not in r.score_breakdown, (
+            f"{r.vulnerability['vuln_id']} double-counts the EDR gap: {r.score_breakdown}"
+        )
