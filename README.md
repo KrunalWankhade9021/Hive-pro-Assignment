@@ -91,6 +91,11 @@ weighted score = (CVSS / 10) * 25          # severity, bounded
                + 5   no EDR   + 3  no auth required   + 2  open > 30 days
 ```
 
+The no-EDR weight is skipped when the finding *is* the missing-EDR gap (the
+`CTRL-SYN-001` rows, `affected_component` "Endpoint Control"), since the asset's
+`edr_installed` flag and the finding record the same fact and charging both would
+count it twice.
+
 Scores are ranked in descending order, with deterministic tie-breakers
 (revenue impact, then CVSS, then days open, then production over staging) so the
 ordering never depends on input row order.
@@ -248,16 +253,51 @@ dashboard, so a weak retrieval is visible rather than hidden; and unit tests pin
 representative finding types to their expected control families (patching to
 SI-2 / RA-5, privilege escalation to AC-6, session-token leakage to SC-23).
 
-**3. The structured inputs disagree or are stale, and the ranking inherits it.**
-The vulnerability table marks 62 rows as "Internet" while the asset inventory
-marks only 21 assets as internet-exposed. Trusting the vulnerability column would
-over-rank internal assets. We resolve this by treating the asset-level
-`internet_exposed` field as the single source of truth and logging the
-discrepancy. More broadly, the ranking is only as accurate as the CSVs feeding
-it, a mis-tagged criticality or a stale asset record would skew a score without
-any outward sign, which is why an input-consistency check that flags rows where
-the two exposure fields conflict is the right guard, and the same pattern extends
-to other cross-field inconsistencies.
+The residual rate is measured rather than assumed, and it is not small: against
+the golden set below, Hit-rate@1 is **0.45** at family level, so the top-ranked
+control is outside the expected family more often than not, and Hit-rate@3 is
+0.55. A high similarity score is not evidence of correctness either, cosine
+values between short remediation text and abstract control prose cluster in the
+0.6-0.7 band whether the control is right or wrong. There is also no similarity
+floor: `K8S-SYN-001` currently retrieves at similarity 0.0 through the fallback
+path and renders with the same visual confidence as a 0.67 match. A floor below
+which the UI says "no strong match" rather than showing a control is the guard
+this needs.
+
+**3. The scorer cannot tell Production from Staging, so a non-production asset can
+inherit a production service's business weight.** `score_risk` reads eight fields;
+`asset.environment` and `asset.criticality` are not among them. Business weight
+comes from the service an asset maps to, and staging hosts map to the same service
+name as their production counterparts. This is visible in the current output:
+`V-2092` on `vpn-staging` (Staging, criticality Medium, data classification
+"Staging Access") scores 106.5, identical to the production VPN edges, because it
+inherits Remote Access's High revenue impact (+6) and ISO 27001 scope (+3). It
+ranks **#5**, above two Production/Critical rows holding the same score.
+
+It is not a wrong answer in this dataset, that host is internet-exposed, carries a
+KEV-listed ransomware CVE, and has a separate finding recording that it shares
+production credentials, but the score reaches that rank without knowing any of it.
+A non-exposed staging asset with the same service mapping would be over-weighted
+with no outward sign. `engine._sort_key` uses environment only as its fifth
+tiebreak, which orders exact ties but cannot stop a staging row outscoring a
+production row on a different CVE, and
+`tests/test_engine.py::test_equal_score_ties_rank_production_above_staging` guards
+the tie case, not this one. The fix is to damp business weight by environment (or
+gate it on `environment == "Production"`), using `data_classification` as a
+cross-check: "Staging Access" alongside a PCI/ISO scope is a contradiction the data
+already exposes.
+
+A smaller version of the same trust problem sits in the inputs themselves.
+`vulnerabilities.csv` carries a per-finding `asset_exposure` column and
+`assets.csv` a per-host `internet_exposed` flag. Exactly one of the 114 rows
+conflicts (`V-2014`, a container misconfiguration on the internet-facing
+`payment-api-prod-02`, where the host is reachable but the finding is not), and
+scoring resolves it by reading the asset-level field only, since exposure is a
+property of the host rather than of a finding on it. That is a policy, not a check:
+nothing compares the two columns, so a dataset in which they diverged widely would
+be scored silently. The same blind spot covers staleness, three assets were last
+seen more than 30 days ago and one has no assigned owner, and none of that reaches
+the score.
 
 ## Supporting question 3, the one thing I would change
 
@@ -282,8 +322,15 @@ ranking's real-world fidelity.
   evaluated (see RAG evaluation above).
 - **LLM (explanations only):** Groq, Qwen 3 (`qwen/qwen3.8-27b`), with a
   deterministic template fallback so the system degrades gracefully if the model
-  is unavailable. The LLM only phrases the explanation from evidence the engine
-  has already computed; it does not decide the ranking or invent facts.
+  is unavailable, including when a reply is truncated at the token cap. The LLM
+  only phrases the explanation from evidence the engine has already computed; it
+  does not decide the ranking or invent facts. Each ranking factor is passed as
+  its own labelled value (`internet_exposed`, `exploit_available`,
+  `kev_ransomware_associated`, ...) rather than left to be inferred from the score
+  breakdown, and scoring *weights* are passed as factor names without their
+  numbers: a weight such as `cvss_base` (CVSS rescaled onto a 25-point slot) is
+  not a CVSS score, and sending both invites the model to quote an impossible
+  severity. The only number labelled `cvss` in the payload is the real one.
 - **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS.
 
 The intelligence is deliberate about which tool does what: the ranking is a

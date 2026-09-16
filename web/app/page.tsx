@@ -23,10 +23,13 @@ function assessment(risks: Risk[]): { headline: string; priority: string } | nul
   const headline =
     `${internet} of the top ${n} risks ${isAre(internet)} internet-facing, and ` +
     `${ransomware} ${isAre(ransomware)} associated with active ransomware campaigns.`;
+  // States the ranking and its basis, not an instruction: the scoring engine
+  // decides order, the retrieved NIST control (shown per risk below) is the
+  // remediation guidance. Keeping the two separate keeps each claim traceable.
   const priority =
-    `Highest priority: ${top.vulnerability.vulnerability_name} ` +
-    `(${top.vulnerability.cve}) on ${topService}, scoring ${top.normalized_score}/100. ` +
-    `Remediate first.`;
+    `Highest-ranked risk: ${top.vulnerability.vulnerability_name} ` +
+    `(${top.vulnerability.cve}) on ${topService}, scoring ${top.normalized_score}/100 ` +
+    `on the configured risk factors.`;
   return { headline, priority };
 }
 
